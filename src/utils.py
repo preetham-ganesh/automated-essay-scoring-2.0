@@ -62,3 +62,28 @@ def create_log(log_file_name: str, logger_directory_path: str) -> None:
 
     # Sets the threshold of logger to DEBUG.
     logger.setLevel(logging.DEBUG)
+
+
+def add_to_log(log: str) -> None:
+    """Logs current information.
+
+    Saves current log information, and prints it in terminal.
+
+    Args:
+        log: A string for the information that needs to be printed in terminal and saved in log.
+
+    Returns:
+        None.
+
+    Exception:
+        NameError: When the logger is not defined, this exception is thrown.
+    """
+    # Type checks arguments.
+    assert isinstance(log, str), "Variable log should be of type 'str'."
+
+    # Adds current log into log file.
+    try:
+        logger.info(log)
+        print(log)
+    except NameError:
+        raise NameError("Create logger object for adding logs. Use create_log()")
