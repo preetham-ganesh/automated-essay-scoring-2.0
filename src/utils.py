@@ -2,6 +2,8 @@ import os
 import logging
 import json
 
+import tensorflow as tf
+
 from typing import Dict, Any
 
 
@@ -157,3 +159,31 @@ def load_json_file(file_name: str, directory_path: str) -> Dict[Any, Any]:
 
     except FileNotFoundError:
         raise FileNotFoundError("File path {} does not exist.".format(file_path))
+
+
+def set_physical_devices_memory_limit() -> None:
+    """Sets memory limit of GPU if found in the system.
+
+    Sets memory limit of GPU if found in the system.
+
+    Args:
+        None.
+
+    Returns:
+        None.
+    """
+    # Lists physical devices in the system.
+    gpu_devices = tf.config.list_physical_devices("GPU")
+
+    # If GPU device is found in the system, then the memory limit is set.
+    if len(gpu_devices) > 0:
+        tf.config.experimental.set_memory_growth(gpu_devices[0], enable=True)
+        gpu_available = True
+    else:
+        gpu_available = False
+
+    if gpu_available:
+        add_to_log("GPU is available and will be used as accelerator.")
+    else:
+        add_to_log("GPU is not available, hence the model will be executed on CPU.")
+    add_to_log("")
