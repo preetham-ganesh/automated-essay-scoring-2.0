@@ -65,3 +65,62 @@ class Model(tf.keras.Model):
                 self.model_layers[name] = tf.keras.layers.Concatenate(
                     axis=config["axis"], name=name
                 )
+
+    def call(
+        self,
+        inputs: List[tf.Tensor],
+        training: bool = False,
+        masks: List[tf.Tensor] = None,
+    ) -> List[tf.Tensor]:
+        """Input tensor is passed through the layers in the model.
+
+        Input tensor is passed through the layers in the model.
+
+        Args:
+            inputs: A list for the inputs from the input batch.
+            training: A boolean value for the flag of training/testing state.
+            masks: A tensor for the masks from the input batch.
+
+        Returns:
+            A tensor for the processed output from the components in the layer.
+        """
+        # Asserts type & values of the input arguments.
+        assert isinstance(inputs, list), "Variable inputs should be of type 'list'."
+        assert isinstance(training, bool), "Variable training should be of type 'bool'."
+        assert (
+            isinstance(masks, list) or masks is None
+        ), "Variable masks should be of type 'list' or masks should have value as 'None'."
+
+        # Extracts inputs from list of tensors.
+        x = inputs[0]
+        hidden_state_m = inputs[1]
+        hidden_state_c = inputs[2]
+        previous_result = inputs[3]
+
+        # Iterates across the layers arrangement, and predicts the output for each layer.
+        for name in self.model_configuration["model"]["layers"]["arrangement"]:
+            config = self.model_configuration["model"]["layers"]["configuration"][name]
+
+            # If layer's name is like 'dropout_', the following output is predicted.
+            if name.split("_")[0] == "dropout":
+                x = self.model_layers[name](x, training=training)
+
+            # If layer's name is like 'lstm_', the following output is predicted.
+            elif name.split("_")[0] == "lstm":
+                if config["return_state"] == True:
+                    x, hidden_state_m, hidden_state_c = self.model_layers[name](
+                        x, initial_state=[hidden_state_m, hidden_state_c]
+                    )
+                else:
+                    x = self.model_layers[name](
+                        x, initial_state=[hidden_state_m, hidden_state_c]
+                    )
+
+            # If layer's name is like 'concat_', the following output is predicted.
+            elif name.split("_")[0] == "concat":
+                x = self.model_layers[name]([x, previous_result])
+
+            # Else, the following output is predicted.
+            else:
+                x = self.model_layers[name](x)
+        return [x]
