@@ -149,3 +149,41 @@ class Model(tf.keras.Model):
         hidden_state_m = tf.zeros((batch_size, rnn_size))
         hidden_state_c = tf.zeros((batch_size, rnn_size))
         return [hidden_state_m, hidden_state_c]
+
+    def build_graph(self) -> tf.keras.Model:
+        """Builds plottable graph for the model.
+
+        Builds plottable graph for the model.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        # Creates the input layer using the model configuration.
+        inputs = [
+            tf.keras.layers.Input(
+                shape=(self.model_configuration["model"]["max_length"],)
+            ),
+            tf.keras.layers.Input(
+                shape=(
+                    self.model_configuration["model"]["decoder"]["layers"][
+                        "configuration"
+                    ]["rnn_0"]["units"]
+                )
+            ),
+            tf.keras.layers.Input(
+                shape=(
+                    self.model_configuration["model"]["decoder"]["layers"][
+                        "configuration"
+                    ]["rnn_0"]["units"]
+                )
+            ),
+            tf.keras.layers.Input(
+                shape=(self.model_configuration["model"]["n_classes"])
+            ),
+        ]
+
+        # Creates an object for the tensorflow model and returns it.
+        return tf.keras.Model(inputs=inputs, outputs=self.call(inputs))
