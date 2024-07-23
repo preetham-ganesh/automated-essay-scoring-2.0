@@ -124,3 +124,28 @@ class Model(tf.keras.Model):
             else:
                 x = self.model_layers[name](x)
         return [x]
+
+    def initialize_hidden_states(
+        self, batch_size: int, rnn_size: int
+    ) -> List[tf.Tensor]:
+        """Initializes hidden states m & c used in the LSTM layer for each batch.
+
+        Initializes hidden states m & c used in the LSTM layer for each batch.
+
+        Args:
+            batch_size: An integer for the size of training/testing batch.
+            rnn_size: An integer for the no. of neurons in the RNN layer.
+
+        Returns:
+            A list of tensors for the hidden states m & c used in the RNN layer.
+        """
+        # Checks type & values of arguments.
+        assert isinstance(
+            batch_size, int
+        ), "Variable batch_size should be of type 'int'."
+        assert isinstance(rnn_size, int), "Variable rnn_size should be of type 'int'."
+
+        # Creates empty tensors for hidden states h & c.
+        hidden_state_m = tf.zeros((batch_size, rnn_size))
+        hidden_state_c = tf.zeros((batch_size, rnn_size))
+        return [hidden_state_m, hidden_state_c]
