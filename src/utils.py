@@ -187,3 +187,33 @@ def set_physical_devices_memory_limit() -> None:
     else:
         add_to_log("GPU is not available, hence the model will be executed on CPU.")
     add_to_log("")
+
+
+def save_text_file(text: str, file_name: str, directory_path: str) -> None:
+    """Saves string as a text file.
+
+    Saves string as a text file.
+
+    Args:
+        text: A string which needs to be saved.
+        file_name: A string for the name with which the file has to be saved.
+        directory_path: A string for the path where the file needs to be saved.
+
+    Returns:
+        None.
+    """
+    # Asserts type & value of the arguments.
+    assert isinstance(text, str), "Variable text should be of type 'str'."
+    assert isinstance(file_name, str), "Variable file_name should be of type 'str'."
+    assert isinstance(
+        directory_path, str
+    ), "Variable directory_path should be of type 'str'."
+
+    # Checks if the following path exists.
+    directory_path = check_directory_path_existence(directory_path)
+
+    # Saves the string as a text file at the file path location.
+    file_path = "{}/{}.txt".format(directory_path, file_name)
+    with open(file_path, "w") as out_file:
+        out_file.write(text)
+    out_file.close()
