@@ -3,6 +3,9 @@ import re
 import unicodedata
 
 import pandas as pd
+import sentencepiece as spm
+
+from utils import save_text_file
 
 from typing import Dict, Any, List
 
@@ -132,7 +135,33 @@ class Dataset(object):
             )
         )
 
+    def train_tokenizer(self) -> None:
+        """Trains the SentencePiece tokenizer on the processed texts from the dataset.
+
+        Trains the SentencePiece tokenizer on the processed texts from the dataset.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        # Combines list of strings into a single string.
+        combined_text = "\n".join(self.processed_df["text"])
+
+        # Saves string as a text file.
+        save_text_file(combined_text, "temp", "")
+
+        # Train a SentencePiece model using the temporary file.
+        spm.SentencePieceTrainer.train(
+            input="temp.txt", model_prefix="sp_tokenizer", vocab_size=8000
+        )
+
+        # Deletes the combined text file.
+        os.remove("temp.txt")
+
 
 dataset = Dataset({})
 dataset.load_dataset()
 dataset.preprocess_dataset()
+dataset.train_tokenizer()
