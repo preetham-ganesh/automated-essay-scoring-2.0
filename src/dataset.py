@@ -1,3 +1,7 @@
+import os
+
+import pandas as pd
+
 from typing import Dict, Any, List
 
 
@@ -22,3 +26,35 @@ class Dataset(object):
 
         # Initalizes class variables.
         self.model_configuration = model_configuration
+
+    def load_dataset() -> None:
+        """Loads original training & testing data as dataframes.
+
+        Loads original training & testing data as dataframes.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        home_directory_path = os.getcwd()
+
+        # Loads the original train & test dataframes.
+        original_train_df = pd.read_csv(
+            "{}/data/raw_data/train.csv".format(home_directory_path)
+        )
+        original_test_df = pd.read_csv(
+            "{}/data/raw_data/test.csv".format(home_directory_path)
+        )
+        print(
+            "No. of original examples in the train data: {}".format(
+                len(original_train_df)
+            )
+        )
+        print(
+            "No. of original examples in the test data: {}".format(
+                len(original_test_df)
+            )
+        )
+        print("")
