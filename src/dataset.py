@@ -43,21 +43,11 @@ class Dataset(object):
         home_directory_path = os.getcwd()
 
         # Loads the original train & test dataframes.
-        self.original_train_df = pd.read_csv(
+        self.original_df = pd.read_csv(
             "{}/data/raw_data/train.csv".format(home_directory_path)
         )
-        self.original_test_df = pd.read_csv(
-            "{}/data/raw_data/test.csv".format(home_directory_path)
-        )
         print(
-            "No. of original examples in the train data: {}".format(
-                len(self.original_train_df)
-            )
-        )
-        print(
-            "No. of original examples in the test data: {}".format(
-                len(self.original_test_df)
-            )
+            "No. of original examples in the dataset: {}".format(len(self.original_df))
         )
         print("")
 
@@ -99,6 +89,48 @@ class Dataset(object):
         text = text.strip()
         text = re.sub(r"\s+", " ", text)
         return text
+
+    def preprocess_dataset(self) -> None:
+        """Preprocesses texts in the dataset to remove unwanted characters, and duplicates.
+
+        Preprocesses texts in the dataset to remove unwanted characters, and duplicates.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        # Drops any duplicates of text from the original dataset.
+        self.original_df.drop_duplicates(
+            subset=["full_text"], keep="first", inplace=True
+        )
+
+        # Creates empty list to store processed texts.
+        self.processed_df = list()
+
+        # Iterates across text & score in the original dataset.
+        for text, score in zip(
+            self.original_df["full_text"], self.original_df["score"]
+        ):
+
+            # Preprocess text to remove/normalize unwanted characters.
+            processed_text = self.preprocess_text(text)
+
+            # If processed text is empty, then it is skipped.
+            if processed_text == "":
+                continue
+
+            # Processed text & score is added to
+            self.processed_df.append({"text": processed_text, "score": score})
+
+        # Converts list of records into dataframe.
+        self.processed_df = pd.DataFrame.from_records(self.processed_df)
+        print(
+            "No. of examples in the processed dataset: {}".format(
+                len(self.processed_df)
+            )
+        )
 
 
 dataset = Dataset({})
