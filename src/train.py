@@ -2,8 +2,9 @@ import os
 import re
 
 import tensorflow as tf
+import mlflow
 
-from src.utils import load_json_file
+from src.utils import load_json_file, check_directory_path_existence
 from src.dataset import Dataset
 from src.model import Model
 
@@ -119,3 +120,47 @@ class Train(object):
             )
 
         print("Finished loading model for current configuration.")
+
+    def generate_model_summary_and_plot(self, plot: bool) -> None:
+        """Generates summary & plot for loaded model.
+
+        Generates summary & plot for loaded model.
+
+        Args:
+            pool: A boolean value to whether generate model plot or not.
+
+        Returns:
+            None.
+        """
+        # Builds plottable graph for the model.
+        model = self.model.build_graph()
+
+        # Compiles the model to log the model summary.
+        model_summary = list()
+        model.summary(print_fn=lambda x: model_summary.append(x))
+        model_summary = "\n".join(model_summary)
+        mlflow.log_text(
+            model_summary,
+            "v{}/summary.txt".format(self.model_configuration["model"]["version"]),
+        )
+
+        # Creates the following directory path if it does not exist.
+        self.reports_directory_path = check_directory_path_existence(
+            "models/digit_recognizer/v{}/reports".format(self.model_version)
+        )
+
+        # Plots the model & saves it as a PNG file.
+        if plot:
+            tf.keras.utils.plot_model(
+                model,
+                "{}/model_plot.png".format(self.reports_directory_path),
+                show_shapes=True,
+                show_layer_names=True,
+                expand_nested=True,
+            )
+
+            # Logs the saved model plot PNG file.
+            mlflow.log_artifact(
+                "{}/model_plot.png".format(self.reports_directory_path),
+                "v{}".format(self.model_configuration["model"]["version"]),
+            )
