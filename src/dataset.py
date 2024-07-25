@@ -28,11 +28,6 @@ class Dataset(object):
         Returns:
             None.
         """
-        # Asserts type & value of the arguments.
-        assert isinstance(
-            model_configuration, dict
-        ), "Variable model_configuration should be of type 'dict'."
-
         # Initalizes class variables.
         self.model_configuration = model_configuration
 
@@ -66,9 +61,6 @@ class Dataset(object):
         Returns:
             A string for the processed text with ASCII characters and spaces.
         """
-        # Asserts type of input arguments.
-        assert isinstance(text, str), "Variable text should be of type 'str'."
-
         # Removes HTML/XML tags from text.
         html_tags = re.compile(r"<[^>]+>")
         text = html_tags.sub(" ", text)
@@ -240,6 +232,16 @@ class Dataset(object):
         # Deletes the combined text file.
         os.remove("temp.txt")
 
+        # Loads the trained SentencePiece tokenizer.
+        self.spp = spm.SentencePieceProcessor()
+        self.spp.load(
+            "{}/models/v{}/{}.model".format(
+                home_directory_path,
+                self.model_configuration["model"]["version"],
+                self.model_configuration["tokenizer"]["name"],
+            )
+        )
+
     def shuffle_slice_dataset(self) -> None:
         """Converts list of texts & scores into TensorFlow dataset.
 
@@ -284,14 +286,41 @@ class Dataset(object):
         )
         self.n_test_steps_per_epoch = self.n_test_examples // self.batch_size
 
+    def load_input_target_batches(
+        self, texts: List[str], scores: List[int]
+    ) -> List[tf.Tensor]:
+        """Loads input text & scores as input & target batch tensors.
 
-dataset = Dataset(
-    {
-        "dataset": {"split_percentage": {"test": 0.05, "validation": 0.05}},
-        "tokenizer": {"vocab_size": 8192, "name": "tokenizer"},
-    }
-)
-dataset.load_dataset()
-dataset.preprocess_dataset()
-dataset.split_dataset()
-dataset.train_tokenizer()
+        Loads input text & scores as input & target batch tensors.
+
+        Args:
+            text: A list of strings for texts in current batch.
+            scores: A list of integers for scores in current batch.
+
+        Returns:
+            A list of tensors for input & target batches.
+        """
+        # Creates empty list to store tokenized & encoded texts.
+        input_batch = list()
+
+        # Iterates across images file paths & categories in current batch.
+        for index in range(self.batch_size):
+            # Tokenizes text, and encodes it as IDs.
+            input_sequence = (
+                [self.spp.id_to_piece(1)]
+                + self.spp.EncodeAsIds(str(texts[index], "UTF-8"))
+                + [self.spp.id_to_piece(2)]
+            )
+
+            # Appends encoded input sequence into list.
+            input_batch.append(input_sequence)
+
+        # Pads sequences in input batch with 0 in the end.
+        input_batch = tf.keras.preprocessing.sequence.pad_sequences(
+            input_batch, padding="post"
+        )
+
+        # Converts input & target batch lists into tensors.
+        input_batch = tf.convert_to_tensor(input_batch, dtype=tf.int32)
+        target_batch = tf.convert_to_tensor(scores, dtype=tf.int32)
+        return [input_batch, target_batch]
