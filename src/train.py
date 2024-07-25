@@ -268,12 +268,67 @@ class Train(object):
                 loss += self.compute_loss(target_batch, predictions)
                 accuracy += self.compute_accuracy(target_batch, predictions)
 
+        # Computes batch loss & accuracy.
+        batch_loss = loss / input_batch.shape[1]
+        batch_accuracy = accuracy / input_batch.shape[1]
+
         # Computes gradients using loss and model variables.
         gradients = tape.gradient(loss, self.model.trainable_variables)
 
         # Uses optimizer to apply the computed gradients on the combined model variables.
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
 
-        # Computes batch metrics and appends it to main metrics.
-        self.train_loss(loss)
-        self.train_accuracy(accuracy)
+        # Appends batch loss & accuracy to main metrics.
+        self.train_loss(batch_loss)
+        self.train_accuracy(batch_accuracy)
+
+    def validation_step(self, input_batch: tf.Tensor, target_batch: tf.Tensor) -> None:
+        """Validates model using current input & target batches.
+
+        Validates model using current input & target batches.
+
+        Args:
+            input_batch: A tensor for the input text from the current batch for validating the model.
+            target_batch: A tensor for the target text from the current batch for validating the model.
+
+        Returns:
+            None.
+        """
+        # Initializes the hidden states from the decoder for each batch.
+        previous_result, decoder_hidden_state_m, decoder_hidden_state_c = (
+            self.model.initialize_other_inputs(
+                target_batch.shape[0],
+                self.model_configuration["model"]["n_classes"],
+                self.model_configuration["model"]["layers"]["configuration"]["rnn_0"][
+                    "units"
+                ],
+            )
+        )
+
+        # Iterates across tokenized & encoded subphrases in input batch.
+        loss = 0
+        accuracy = 0
+        for id_0 in range(
+            0, input_batch.shape[0], self.model_configuration["model"]["max_length"]
+        ):
+            # Predicts output for current subphrase & computes loss & accuracy.
+            predictions = self.model(
+                [
+                    input_batch[
+                        id_0 : id_0 + self.model_configuration["model"]["max_length"]
+                    ],
+                    decoder_hidden_state_m,
+                    decoder_hidden_state_c,
+                    previous_result,
+                ]
+            )
+            loss += self.compute_loss(target_batch, predictions)
+            accuracy += self.compute_accuracy(target_batch, predictions)
+
+        # Computes batch loss & accuracy.
+        batch_loss = loss / input_batch.shape[1]
+        batch_accuracy = accuracy / input_batch.shape[1]
+
+        # Appends batch loss & accuracy to main metrics.
+        self.validation_loss(batch_loss)
+        self.validation_accuracy(batch_accuracy)
