@@ -365,14 +365,14 @@ class Train(object):
             self.dataset.train_dataset.take(self.dataset.n_train_steps_per_epoch)
         ):
             # Loads input & target sequences for current batch as tensors.
-            input_batch, target_batch = self.dataset.load_batch_input_target(
+            input_batch, target_batch = self.dataset.load_input_target_batches(
                 list(texts.numpy()), list(scores.numpy())
             )
 
             # Trains the model using the current input and target batch.
             self.train_step(input_batch, target_batch)
 
-            # Logs metrics for current step.
+            # Logs train metrics for current step.
             mlflow.log_metrics(
                 {
                     "loss": self.train_loss.result().numpy(),
@@ -380,3 +380,37 @@ class Train(object):
                 },
                 step=step + batch,
             )
+
+    def validate_model_per_epoch(self, epoch: int) -> None:
+        """Validates the model using validation dataset for current epoch.
+
+        Validates the model using validation dataset for current epoch.
+
+        Args:
+            epoch: An integer for the number of current epoch.
+
+        Returns:
+            None.
+        """
+        # Iterates across batches in the validation dataset.
+        for batch, (texts, scores) in enumerate(
+            self.dataset.validation_dataset.take(
+                self.dataset.n_validation_steps_per_epoch
+            )
+        ):
+            # Loads input & target sequences for current batch as tensors.
+            input_batch, target_batch = self.dataset.load_input_target_batches(
+                list(texts.numpy()), list(scores.numpy())
+            )
+
+            # Validates the model using the current input and target batch.
+            self.validation_step(input_batch, target_batch)
+
+        # Logs validation metrics for current epoch.
+        mlflow.log_metrics(
+            {
+                "loss": self.validation_loss.result().numpy(),
+                "accuracy": self.validation_accuracy.result().numpy(),
+            },
+            step=epoch,
+        )
