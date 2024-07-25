@@ -348,3 +348,35 @@ class Train(object):
         self.validation_loss.reset_states()
         self.train_accuracy.reset_states()
         self.validation_accuracy.reset_states()
+
+    def train_model_per_epoch(self, step: int) -> int:
+        """Trains the model using train dataset for current epoch.
+
+        Trains the model using train dataset for current epoch.
+
+        Args:
+            epoch: An integer for the number of current epoch.
+
+        Returns:
+            An integer for the updated step count after current epoch.
+        """
+        # Iterates across batches in the train dataset.
+        for batch, (texts, scores) in enumerate(
+            self.dataset.train_dataset.take(self.dataset.n_train_steps_per_epoch)
+        ):
+            # Loads input & target sequences for current batch as tensors.
+            input_batch, target_batch = self.dataset.load_batch_input_target(
+                list(texts.numpy()), list(scores.numpy())
+            )
+
+            # Trains the model using the current input and target batch.
+            self.train_step(input_batch, target_batch)
+
+            # Logs metrics for current step.
+            mlflow.log_metrics(
+                {
+                    "loss": self.train_loss.result().numpy(),
+                    "accuracy": self.train_accuracy.result().numpy(),
+                },
+                step=step + batch,
+            )
