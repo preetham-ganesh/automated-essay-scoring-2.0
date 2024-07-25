@@ -1,6 +1,7 @@
 import os
 
 from src.utils import load_json_file
+from src.dataset import Dataset
 
 
 class Train(object):
@@ -42,3 +43,32 @@ class Train(object):
         self.model_configuration = load_json_file(
             "v{}".format(self.model_version), model_configuration_directory_path
         )
+
+    def load_dataset(self) -> None:
+        """Loads dataset based on model configuration.
+
+        Loads dataset based on model configuration.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        # Initializes object for the Dataset class.
+        self.dataset = Dataset(self.model_configuration)
+
+        # Loads original training data as dataframe.
+        self.dataset.load_dataset()
+
+        # Preprocesses texts in the dataset to remove unwanted characters, and duplicates.
+        self.dataset.preprocess_dataset()
+
+        # Splits processed essay texts & scores into train, validation & test splits.
+        self.dataset.split_dataset()
+
+        # Trains the SentencePiece tokenizer on the processed texts from the dataset.
+        self.dataset.train_tokenizer()
+
+        # Converts list of texts & scores into TensorFlow dataset.
+        self.dataset.shuffle_slice_dataset()
