@@ -428,3 +428,51 @@ class Train(object):
         """
         self.manager.save()
         print("Checkpoint saved at {}.".format(self.checkpoint_directory_path))
+
+    def early_stopping(self) -> bool:
+        """Stops the model from learning further if the performance has not improved from previous epoch.
+
+        Stops the model from learning further if the performance has not improved from previous epoch.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        # If epoch = 1, then best validation loss is replaced with current validation loss, & the checkpoint is saved.
+        if self.best_validation_loss is None:
+            self.patience_count = 0
+            self.best_validation_loss = str(
+                round(self.validation_loss.result().numpy(), 3)
+            )
+            self.save_model()
+
+        # If best validation loss is higher than current validation loss, the best validation loss is replaced with
+        # current validation loss, & the checkpoint is saved.
+        elif self.best_validation_loss > str(
+            round(self.validation_loss.result().numpy(), 3)
+        ):
+            self.patience_count = 0
+            print(
+                "Best validation loss changed from {} to {}".format(
+                    str(self.best_validation_loss),
+                    str(round(self.validation_loss.result().numpy(), 3)),
+                )
+            )
+            self.best_validation_loss = str(
+                round(self.validation_loss.result().numpy(), 3)
+            )
+            self.save_model()
+
+        # If best validation loss is not higher than the current validation loss, then the number of times the model
+        # has not improved is incremented by 1.
+        elif self.patience_count < 2:
+            self.patience_count += 1
+            print("Best validation loss did not improve.")
+            print("Checkpoint not saved.")
+
+        # If the number of times the model did not improve is greater than 4, then model is stopped from training.
+        else:
+            return False
+        return True
