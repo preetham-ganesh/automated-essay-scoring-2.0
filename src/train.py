@@ -590,3 +590,36 @@ class Train(object):
                 """
                 # Initializes class variables.
                 self.model = model
+
+            @tf.function(
+                input_signature=[
+                    tf.TensorSpec(shape=input_0_shape, dtype=tf.int32),
+                    tf.TensorSpec(shape=input_1_shape, dtype=tf.float32),
+                    tf.TensorSpec(shape=input_2_shape, dtype=tf.float32),
+                    tf.TensorSpec(shape=input_3_shape, dtype=tf.float32),
+                ]
+            )
+            def predict(
+                self,
+                x: tf.Tensor,
+                hidden_state_m: tf.Tensor,
+                hidden_state_c: tf.Tensor,
+                previous_result: tf.Tensor,
+            ):
+                """Inputs are passed through the model for prediction.
+
+                Inputs are passed through the model for prediction.
+
+                Args:
+                    x: A tensor for the input at the current timestep.
+                    hidden_state_m: A tensor for the hidden state m passed through RNN layers in the model.
+                    hidden_state_c: A tensor for the hidden state c passed through RNN layers in the model.
+                    previous_result: A tensor for the output from the previous input batch.
+
+                Return:
+                    A tensor for the output predicted by the encoder for the current image.
+                """
+                prediction = self.model(
+                    [x, hidden_state_m, hidden_state_c, previous_result], False, None
+                )
+                return prediction
