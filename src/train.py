@@ -623,3 +623,23 @@ class Train(object):
                     [x, hidden_state_m, hidden_state_c, previous_result], False, None
                 )
                 return prediction
+
+        # Exports trained tensorflow model as tensorflow module for serving.
+        exported_model = ExportModel(self.model)
+
+        # Saves the tensorflow object created from the loaded model.
+        home_directory_path = os.getcwd()
+        tf.saved_model.save(
+            exported_model,
+            "{}/models/essay_scorer/v{}/serialized".format(
+                home_directory_path, self.model_version
+            ),
+        )
+
+        # Logs serialized model as artifact.
+        mlflow.log_artifacts(
+            "{}/models/essay_scorer/v{}/serialized".format(
+                home_directory_path, self.model_version
+            ),
+            "v{}/model".format(self.model_configuration["model"]["version"]),
+        )
