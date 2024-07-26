@@ -32,9 +32,9 @@ class Dataset(object):
         self.model_configuration = model_configuration
 
     def load_dataset(self) -> None:
-        """Loads original training & testing data as dataframes.
+        """Loads original training data as dataframe.
 
-        Loads original training & testing data as dataframes.
+        Loads original training data as dataframe.
 
         Args:
             None.

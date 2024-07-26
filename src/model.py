@@ -125,8 +125,8 @@ class Model(tf.keras.Model):
                 x = self.model_layers[name](x)
         return [x]
 
-    def initialize_hidden_states(
-        self, batch_size: int, rnn_size: int
+    def initialize_other_inputs(
+        self, batch_size: int, n_classes: int, rnn_size: int
     ) -> List[tf.Tensor]:
         """Initializes hidden states m & c used in the LSTM layer for each batch.
 
@@ -134,10 +134,11 @@ class Model(tf.keras.Model):
 
         Args:
             batch_size: An integer for the size of training/testing batch.
+            n_classes: An integer for the no. of neurons in the last layer.
             rnn_size: An integer for the no. of neurons in the RNN layer.
 
         Returns:
-            A list of tensors for the hidden states m & c used in the RNN layer.
+            A list of tensors for the previous result, hidden states m & c used in the RNN layer.
         """
         # Checks type & values of arguments.
         assert isinstance(
@@ -146,9 +147,10 @@ class Model(tf.keras.Model):
         assert isinstance(rnn_size, int), "Variable rnn_size should be of type 'int'."
 
         # Creates empty tensors for hidden states h & c.
+        previous_result = tf.ones((batch_size, n_classes)) / n_classes
         hidden_state_m = tf.zeros((batch_size, rnn_size))
         hidden_state_c = tf.zeros((batch_size, rnn_size))
-        return [hidden_state_m, hidden_state_c]
+        return [previous_result, hidden_state_m, hidden_state_c]
 
     def build_graph(self) -> tf.keras.Model:
         """Builds plottable graph for the model.
@@ -168,16 +170,16 @@ class Model(tf.keras.Model):
             ),
             tf.keras.layers.Input(
                 shape=(
-                    self.model_configuration["model"]["decoder"]["layers"][
-                        "configuration"
-                    ]["rnn_0"]["units"]
+                    self.model_configuration["model"]["layers"]["configuration"][
+                        "rnn_0"
+                    ]["units"]
                 )
             ),
             tf.keras.layers.Input(
                 shape=(
-                    self.model_configuration["model"]["decoder"]["layers"][
-                        "configuration"
-                    ]["rnn_0"]["units"]
+                    self.model_configuration["model"]["layers"]["configuration"][
+                        "rnn_0"
+                    ]["units"]
                 )
             ),
             tf.keras.layers.Input(
