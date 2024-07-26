@@ -546,3 +546,30 @@ class Train(object):
                 "test_accuracy": self.validation_accuracy.result().numpy(),
             }
         )
+
+    def serialize_model(self) -> None:
+        """Serializes model as TensorFlow module & saves it as MLFlow artifact.
+
+        Serializes model as TensorFlow module & saves it as MLFlow artifact.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        # Defines input shapes for exported model's input signature.
+        input_0_shape = [None, self.model_configuration["model"]["max_length"]]
+        input_1_shape = [
+            None,
+            self.model_configuration["model"]["layers"]["configuration"]["rnn_0"][
+                "units"
+            ],
+        ]
+        input_2_shape = [
+            None,
+            self.model_configuration["model"]["layers"]["configuration"]["rnn_0"][
+                "units"
+            ],
+        ]
+        input_3_shape = [None, self.model_configuration["model"]["n_classes"]]
