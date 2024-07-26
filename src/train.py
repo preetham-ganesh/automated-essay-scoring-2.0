@@ -146,7 +146,7 @@ class Train(object):
 
         # Creates the following directory path if it does not exist.
         self.reports_directory_path = check_directory_path_existence(
-            "models/digit_recognizer/v{}/reports".format(self.model_version)
+            "models/essay_scorer/v{}/reports".format(self.model_version)
         )
 
         # Plots the model & saves it as a PNG file.
@@ -375,8 +375,8 @@ class Train(object):
             # Logs train metrics for current step.
             mlflow.log_metrics(
                 {
-                    "loss": self.train_loss.result().numpy(),
-                    "accuracy": self.train_accuracy.result().numpy(),
+                    "train_loss": self.train_loss.result().numpy(),
+                    "train_accuracy": self.train_accuracy.result().numpy(),
                 },
                 step=step + batch,
             )
@@ -409,8 +409,8 @@ class Train(object):
         # Logs validation metrics for current epoch.
         mlflow.log_metrics(
             {
-                "loss": self.validation_loss.result().numpy(),
-                "accuracy": self.validation_accuracy.result().numpy(),
+                "validation_loss": self.validation_loss.result().numpy(),
+                "validation_accuracy": self.validation_accuracy.result().numpy(),
             },
             step=epoch,
         )
@@ -512,3 +512,37 @@ class Train(object):
                 print("")
                 break
             print("")
+
+    def test_model(self) -> None:
+        """Tests the trained model using the test dataset.
+
+        Tests the trained model using the test dataset.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        # Resets states for validation metrics.
+        self.reset_trackers()
+
+        # Iterates across batches in the train dataset.
+        for batch, (texts, scores) in enumerate(
+            self.dataset.test_dataset.take(self.dataset.n_test_steps_per_epoch)
+        ):
+            # Loads input & target sequences for current batch as tensors.
+            input_batch, target_batch = self.dataset.load_input_target_batches(
+                list(texts.numpy()), list(scores.numpy())
+            )
+
+            # Tests the model using the current input and target batch.
+            self.validation_step(input_batch, target_batch)
+
+        # Logs test metrics for current epoch.
+        mlflow.log_metrics(
+            {
+                "test_loss": self.validation_loss.result().numpy(),
+                "test_accuracy": self.validation_accuracy.result().numpy(),
+            }
+        )
