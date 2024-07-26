@@ -31,44 +31,6 @@ def check_directory_path_existence(directory_path: str) -> str:
     return absolute_directory_path
 
 
-def create_log(log_file_name: str, logger_directory_path: str) -> None:
-    """Creates a logger.
-
-    Creates an object for logging terminal output.
-
-    Args:
-        log_file_name: A string for the name for the log file.
-        logger_directory_path: A string for the location where the log file should be stored.
-
-    Returns:
-        None.
-    """
-    # Asserts type of arguments.
-    assert isinstance(
-        logger_directory_path, str
-    ), "Logger_directory_path should be of type 'str'."
-    assert isinstance(
-        log_file_name, str
-    ), "Variable log_file_name should be of type 'str'."
-
-    # Checks if the following path exists.
-    logger_directory_path = check_directory_path_existence(logger_directory_path)
-
-    # Create and configure logger
-    logging.basicConfig(
-        filename="{}/{}.log".format(logger_directory_path, log_file_name),
-        format="%(asctime)s %(message)s",
-        filemode="w",
-    )
-
-    # Creates an object.
-    global logger
-    logger = logging.getLogger()
-
-    # Sets the threshold of logger to DEBUG.
-    logger.setLevel(logging.DEBUG)
-
-
 def add_to_log(log: str) -> None:
     """Logs current information.
 
