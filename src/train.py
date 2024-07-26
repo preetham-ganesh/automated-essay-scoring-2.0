@@ -573,3 +573,20 @@ class Train(object):
             ],
         ]
         input_3_shape = [None, self.model_configuration["model"]["n_classes"]]
+
+        class ExportModel(tf.Module):
+            """Exports trained tensorflow model as tensorflow module for serving."""
+
+            def __init__(self, model: tf.keras.Model) -> None:
+                """Initializes the variables in the class.
+
+                Initializes the variables in the class.
+
+                Args:
+                    model: A tensorflow model for the model trained with latest checkpoints.
+
+                Returns:
+                    None.
+                """
+                # Initializes class variables.
+                self.model = model
