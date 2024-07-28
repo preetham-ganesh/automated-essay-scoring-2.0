@@ -216,7 +216,7 @@ class Dataset(object):
                 self.model_configuration["model"]["version"],
                 self.model_configuration["tokenizer"]["name"],
             ),
-            vocab_size=8000,
+            vocab_size=self.model_configuration["tokenizer"]["vocab_size"],
         )
 
         # Logs the trained tokenizer model.
