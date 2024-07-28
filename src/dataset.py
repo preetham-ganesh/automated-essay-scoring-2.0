@@ -9,7 +9,7 @@ import mlflow
 from mlflow.data import from_pandas
 import tensorflow as tf
 
-from utils import save_text_file
+from utils import save_text_file, check_directory_path_existence
 
 from typing import Dict, Any, List
 
@@ -208,12 +208,16 @@ class Dataset(object):
         # Saves string as a text file.
         save_text_file(combined_text, "temp", "")
 
+        # Checks if the following directory path exists. If not, then creates it.
+        tokenizer_directory_path = check_directory_path_existence(
+            "models/v{}".format(self.model_configuration["version"])
+        )
+
         # Train a SentencePiece model using the temporary file.
         spm.SentencePieceTrainer.train(
             input="temp.txt",
-            model_prefix="{}/models/v{}/{}".format(
-                home_directory_path,
-                self.model_configuration["version"],
+            model_prefix="{}/{}".format(
+                tokenizer_directory_path,
                 self.model_configuration["tokenizer"]["name"],
             ),
             vocab_size=self.model_configuration["tokenizer"]["vocab_size"],
