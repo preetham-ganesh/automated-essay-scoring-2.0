@@ -45,7 +45,7 @@ class Train(object):
             None.
         """
         self.home_directory_path = os.getcwd()
-        model_configuration_directory_path = "{}/configs/models".format(
+        model_configuration_directory_path = "{}/configs".format(
             self.home_directory_path
         )
         self.model_configuration = load_json_file(
