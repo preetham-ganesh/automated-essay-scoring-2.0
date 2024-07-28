@@ -68,22 +68,22 @@ def main():
     trainer.load_dataset()
 
     # Loads model & other utilies for training it.
-    # trainer.load_model("train")
+    trainer.load_model("train")
 
     # Generates summary and plot for loaded model.
-    # trainer.generate_model_summary_and_plot(True)
+    trainer.generate_model_summary_and_plot(True)
 
     # Trains & validates the model using train & validation dataset.
-    # trainer.fit()
+    trainer.fit()
 
     # Loads the model with latest checkpoint.
-    # trainer.load_model("predict")
+    trainer.load_model("predict")
 
     # Tests the model using the test dataset.
-    # trainer.test_model()
+    trainer.test_model()
 
     # Serializes model as TensorFlow module & saves it as MLFlow artifact.
-    # trainer.serialize_model()
+    trainer.serialize_model()
 
 
 if __name__ == "__main__":
