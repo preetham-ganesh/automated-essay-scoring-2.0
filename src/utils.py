@@ -61,7 +61,7 @@ def save_json_file(
     with open(file_path, "w") as out_file:
         json.dump(dictionary, out_file, indent=4)
     out_file.close()
-    add_to_log("{} file saved successfully.".format(file_name))
+    print("{} file saved successfully.".format(file_name))
 
 
 def load_json_file(file_name: str, directory_path: str) -> Dict[Any, Any]:
@@ -120,10 +120,9 @@ def set_physical_devices_memory_limit() -> None:
         gpu_available = False
 
     if gpu_available:
-        add_to_log("GPU is available and will be used as accelerator.")
+        print("GPU is available and will be used as accelerator.")
     else:
-        add_to_log("GPU is not available, hence the model will be executed on CPU.")
-    add_to_log("")
+        print("GPU is not available, hence the model will be executed on CPU.")
 
 
 def save_text_file(text: str, file_name: str, directory_path: str) -> None:
