@@ -1,0 +1,19 @@
+{
+  "version": "1.0.0",
+  "dataset": {
+    "name": "Learning Agency Lab - Automated Essay Scoring 2.0",
+    "version": "1.0.0",
+    "split_percentage": { "validation": 0.05, "test": 0.05 }
+  },
+  "tokenizer": { "name": "tokenizer", "vocab_size": 8192 },
+  "model": {
+    "epochs": 20,
+    "batch_size": 64,
+    "n_channels": 1,
+    "n_classes": 6,
+    "optimizer": {
+      "name": "adam",
+      "learning_rate": 0.001
+    }
+  }
+}
