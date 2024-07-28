@@ -642,3 +642,6 @@ class Train(object):
             "{}/models/v{}/serialized".format(home_directory_path, self.model_version),
             "v{}/model".format(self.model_configuration["version"]),
         )
+
+        # Logs updated model configuration as artifact.
+        mlflow.log_dict(self.model_configuration, "v{}.json".format(self.model_version))
