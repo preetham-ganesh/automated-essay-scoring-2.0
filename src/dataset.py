@@ -311,9 +311,7 @@ class Dataset(object):
         for index in range(self.batch_size):
             # Tokenizes text, and encodes it as IDs.
             input_sequence = (
-                [self.spp.id_to_piece(1)]
-                + self.spp.EncodeAsIds(str(texts[index], "UTF-8"))
-                + [self.spp.id_to_piece(2)]
+                [1] + self.spp.EncodeAsIds(str(texts[index], "UTF-8")) + [2]
             )
 
             # Appends encoded input sequence into list.
@@ -321,7 +319,9 @@ class Dataset(object):
 
         # Pads sequences in input batch with 0 in the end.
         input_batch = tf.keras.preprocessing.sequence.pad_sequences(
-            input_batch, padding="post"
+            input_batch,
+            padding="post",
+            maxlen=self.model_configuration["model"]["max_length"],
         )
 
         # Converts input & target batch lists into tensors.
