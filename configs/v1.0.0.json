@@ -11,43 +11,48 @@
     "batch_size": 64,
     "n_channels": 1,
     "n_classes": 6,
+    "max_length": 50,
     "optimizer": {
       "name": "adam",
       "learning_rate": 0.001
     },
-    "arrangement": [
-      "embedding_0",
-      "lstm_0",
-      "dropout_0",
-      "lstm_1",
-      "dropout_1",
-      "dense_0",
-      "dense_1",
-      "dense_2"
-    ],
-    "configuration": {
-      "embedding_0": {
-        "name": "embedding_0",
-        "input_dim": 8192,
-        "output_dim": 512
-      },
-      "lstm_0": {
-        "name": "lstm_0",
-        "units": 512,
-        "return_state": true,
-        "return_sequences": true
-      },
-      "dropout_0": { "rate": 0.3 },
-      "lstm_1": {
-        "name": "lstm_0",
-        "units": 512,
-        "return_state": false,
-        "return_sequences": false
-      },
-      "dropout_1": { "rate": 0.3 },
-      "dense_0": { "name": "dense_0", "units": 128, "activation": "relu" },
-      "dense_1": { "name": "dense_1", "units": 32, "activation": "relu" },
-      "dense_2": { "name": "dense_2", "units": 6, "activation": "softmax" }
+    "layers": {
+      "arrangement": [
+        "embedding_0",
+        "lstm_0",
+        "dropout_0",
+        "lstm_1",
+        "dropout_1",
+        "concat_0",
+        "dense_0",
+        "dense_1",
+        "dense_2"
+      ],
+      "configuration": {
+        "embedding_0": {
+          "name": "embedding_0",
+          "input_dim": 8192,
+          "output_dim": 512
+        },
+        "lstm_0": {
+          "name": "lstm_0",
+          "units": 512,
+          "return_state": true,
+          "return_sequences": true
+        },
+        "dropout_0": { "rate": 0.3 },
+        "lstm_1": {
+          "name": "lstm_1",
+          "units": 512,
+          "return_state": false,
+          "return_sequences": false
+        },
+        "dropout_1": { "rate": 0.3 },
+        "concat_0": { "name": "concat_0", "axis": -1 },
+        "dense_0": { "name": "dense_0", "units": 128, "activation": "relu" },
+        "dense_1": { "name": "dense_1", "units": 32, "activation": "relu" },
+        "dense_2": { "name": "dense_2", "units": 6, "activation": "softmax" }
+      }
     }
   }
 }
