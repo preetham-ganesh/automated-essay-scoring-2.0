@@ -82,9 +82,9 @@ class Train(object):
         self.dataset.shuffle_slice_dataset()
 
         # Updates model configuration with trained tokenizer vocab size.
-        self.model_configuration["model"]["configuration"]["embedding"]["input_dim"] = (
-            self.dataset.spp.vocab_size + 2
-        )
+        self.model_configuration["model"]["layers"]["configuration"]["embedding_0"][
+            "input_dim"
+        ] = (self.dataset.spp.get_piece_size() + 2)
 
     def load_model(self, mode: str) -> None:
         """Loads model & other utilies for training.
@@ -243,7 +243,7 @@ class Train(object):
             self.model.initialize_other_inputs(
                 target_batch.shape[0],
                 self.model_configuration["model"]["n_classes"],
-                self.model_configuration["model"]["layers"]["configuration"]["rnn_0"][
+                self.model_configuration["model"]["layers"]["configuration"]["lstm_0"][
                     "units"
                 ],
             )
@@ -254,22 +254,23 @@ class Train(object):
         accuracy = 0
         with tf.GradientTape() as tape:
             for id_0 in range(
-                0, input_batch.shape[0], self.model_configuration["model"]["max_length"]
+                0, input_batch.shape[1], self.model_configuration["model"]["max_length"]
             ):
                 # Predicts output for current subphrase & computes loss & accuracy.
                 predictions = self.model(
                     [
                         input_batch[
+                            :,
                             id_0 : id_0
-                            + self.model_configuration["model"]["max_length"]
+                            + self.model_configuration["model"]["max_length"],
                         ],
                         decoder_hidden_state_m,
                         decoder_hidden_state_c,
                         previous_result,
                     ]
                 )
-                loss += self.compute_loss(target_batch, predictions)
-                accuracy += self.compute_accuracy(target_batch, predictions)
+                loss += self.compute_loss(target_batch, predictions[0])
+                accuracy += self.compute_accuracy(target_batch, predictions[0])
 
         # Computes batch loss & accuracy.
         batch_loss = loss / input_batch.shape[1]
@@ -302,7 +303,7 @@ class Train(object):
             self.model.initialize_other_inputs(
                 target_batch.shape[0],
                 self.model_configuration["model"]["n_classes"],
-                self.model_configuration["model"]["layers"]["configuration"]["rnn_0"][
+                self.model_configuration["model"]["layers"]["configuration"]["lstm_0"][
                     "units"
                 ],
             )
@@ -312,21 +313,21 @@ class Train(object):
         loss = 0
         accuracy = 0
         for id_0 in range(
-            0, input_batch.shape[0], self.model_configuration["model"]["max_length"]
+            0, input_batch.shape[1], self.model_configuration["model"]["max_length"]
         ):
             # Predicts output for current subphrase & computes loss & accuracy.
             predictions = self.model(
                 [
                     input_batch[
-                        id_0 : id_0 + self.model_configuration["model"]["max_length"]
+                        :, id_0 : id_0 + self.model_configuration["model"]["max_length"]
                     ],
                     decoder_hidden_state_m,
                     decoder_hidden_state_c,
                     previous_result,
                 ]
             )
-            loss += self.compute_loss(target_batch, predictions)
-            accuracy += self.compute_accuracy(target_batch, predictions)
+            loss += self.compute_loss(target_batch, predictions[0])
+            accuracy += self.compute_accuracy(target_batch, predictions[0])
 
         # Computes batch loss & accuracy.
         batch_loss = loss / input_batch.shape[1]
@@ -347,10 +348,10 @@ class Train(object):
         Returns:
             None.
         """
-        self.train_loss.reset_states()
-        self.validation_loss.reset_states()
-        self.train_accuracy.reset_states()
-        self.validation_accuracy.reset_states()
+        self.train_loss.reset_state()
+        self.validation_loss.reset_state()
+        self.train_accuracy.reset_state()
+        self.validation_accuracy.reset_state()
 
     def train_model_per_epoch(self, step: int) -> int:
         """Trains the model using train dataset for current epoch.
@@ -383,6 +384,7 @@ class Train(object):
                 },
                 step=step + batch,
             )
+        return step
 
     def validate_model_per_epoch(self, epoch: int) -> None:
         """Validates the model using validation dataset for current epoch.
@@ -495,13 +497,14 @@ class Train(object):
         self.initialize_metric_trackers()
 
         # Iterates across epochs for training the neural network model.
+        step = 0
         for epoch in range(self.model_configuration["model"]["epochs"]):
 
             # Resets states for training and validation metrics before the start of each epoch.
             self.reset_trackers()
 
             # Trains the model using batces in the train dataset.
-            self.train_model_per_epoch(epoch)
+            step = self.train_model_per_epoch(step)
 
             # Validates the model using batches in the validation dataset.
             self.validate_model_per_epoch(epoch)
