@@ -81,6 +81,11 @@ class Train(object):
         # Converts list of texts & scores into TensorFlow dataset.
         self.dataset.shuffle_slice_dataset()
 
+        # Updates model configuration with trained tokenizer vocab size.
+        self.model_configuration["model"]["configuration"]["embedding"]["input_dim"] = (
+            self.dataset.spp.vocab_size + 2
+        )
+
     def load_model(self, mode: str) -> None:
         """Loads model & other utilies for training.
 
