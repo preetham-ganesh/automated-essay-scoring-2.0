@@ -22,6 +22,13 @@ def main():
     # Parses the arguments.
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "-stu",
+        "--set_tracking_uri",
+        type=str,
+        required=True,
+        help="URI where MLFlow server is located.",
+    )
+    parser.add_argument(
         "-en",
         "--experiment_name",
         type=str,
@@ -39,6 +46,9 @@ def main():
 
     # Sets memory limit of GPU if found in the system.
     set_physical_devices_memory_limit()
+
+    # Sets tracking URI for MLFlow server.
+    mlflow.set_tracking_uri(args.set_tracking_uri)
 
     # Gets experiment based on name.
     existing_experiment = mlflow.get_experiment_by_name(args.experiment_name)
