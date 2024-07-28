@@ -213,7 +213,7 @@ class Dataset(object):
             input="temp.txt",
             model_prefix="{}/models/v{}/{}".format(
                 home_directory_path,
-                self.model_configuration["model"]["version"],
+                self.model_configuration["version"],
                 self.model_configuration["tokenizer"]["name"],
             ),
             vocab_size=self.model_configuration["tokenizer"]["vocab_size"],
@@ -223,10 +223,10 @@ class Dataset(object):
         mlflow.log_artifact(
             "{}/models/v{}/{}.model".format(
                 home_directory_path,
-                self.model_configuration["model"]["version"],
+                self.model_configuration["version"],
                 self.model_configuration["tokenizer"]["name"],
             ),
-            "v{}".format(self.model_configuration["model"]["version"]),
+            "v{}".format(self.model_configuration["version"]),
         )
 
         # Deletes the combined text file.
@@ -237,7 +237,7 @@ class Dataset(object):
         self.spp.load(
             "{}/models/v{}/{}.model".format(
                 home_directory_path,
-                self.model_configuration["model"]["version"],
+                self.model_configuration["version"],
                 self.model_configuration["tokenizer"]["name"],
             )
         )
