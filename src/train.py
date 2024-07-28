@@ -253,6 +253,7 @@ class Train(object):
         loss = 0
         accuracy = 0
         with tf.GradientTape() as tape:
+            n_subsequences = 0
             for id_0 in range(
                 0, input_batch.shape[1], self.model_configuration["model"]["max_length"]
             ):
@@ -271,10 +272,11 @@ class Train(object):
                 )
                 loss += self.compute_loss(target_batch, predictions[0])
                 accuracy += self.compute_accuracy(target_batch, predictions[0])
+                n_subsequences += 1
 
         # Computes batch loss & accuracy.
-        batch_loss = loss / input_batch.shape[1]
-        batch_accuracy = accuracy / input_batch.shape[1]
+        batch_loss = loss / n_subsequences
+        batch_accuracy = accuracy / n_subsequences
 
         # Computes gradients using loss and model variables.
         gradients = tape.gradient(loss, self.model.trainable_variables)
@@ -312,6 +314,7 @@ class Train(object):
         # Iterates across tokenized & encoded subphrases in input batch.
         loss = 0
         accuracy = 0
+        n_subsequences = 0
         for id_0 in range(
             0, input_batch.shape[1], self.model_configuration["model"]["max_length"]
         ):
@@ -328,10 +331,11 @@ class Train(object):
             )
             loss += self.compute_loss(target_batch, predictions[0])
             accuracy += self.compute_accuracy(target_batch, predictions[0])
+            n_subsequences += 1
 
         # Computes batch loss & accuracy.
-        batch_loss = loss / input_batch.shape[1]
-        batch_accuracy = accuracy / input_batch.shape[1]
+        batch_loss = loss / n_subsequences
+        batch_accuracy = accuracy / n_subsequences
 
         # Appends batch loss & accuracy to main metrics.
         self.validation_loss(batch_loss)
@@ -568,13 +572,13 @@ class Train(object):
         input_0_shape = [None, self.model_configuration["model"]["max_length"]]
         input_1_shape = [
             None,
-            self.model_configuration["model"]["layers"]["configuration"]["rnn_0"][
+            self.model_configuration["model"]["layers"]["configuration"]["lstm_0"][
                 "units"
             ],
         ]
         input_2_shape = [
             None,
-            self.model_configuration["model"]["layers"]["configuration"]["rnn_0"][
+            self.model_configuration["model"]["layers"]["configuration"]["lstm_0"][
                 "units"
             ],
         ]
