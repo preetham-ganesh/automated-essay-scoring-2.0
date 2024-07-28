@@ -139,7 +139,7 @@ class Train(object):
         model_summary = "\n".join(model_summary)
         mlflow.log_text(
             model_summary,
-            "v{}/summary.txt".format(self.model_configuration["model"]["version"]),
+            "v{}/summary.txt".format(self.model_configuration["version"]),
         )
 
         # Creates the following directory path if it does not exist.
@@ -160,7 +160,7 @@ class Train(object):
             # Logs the saved model plot PNG file.
             mlflow.log_artifact(
                 "{}/model_plot.png".format(self.reports_directory_path),
-                "v{}".format(self.model_configuration["model"]["version"]),
+                "v{}".format(self.model_configuration["version"]),
             )
 
     def initialize_metric_trackers(self) -> None:
@@ -635,5 +635,5 @@ class Train(object):
         # Logs serialized model as artifact.
         mlflow.log_artifacts(
             "{}/models/v{}/serialized".format(home_directory_path, self.model_version),
-            "v{}/model".format(self.model_configuration["model"]["version"]),
+            "v{}/model".format(self.model_configuration["version"]),
         )
