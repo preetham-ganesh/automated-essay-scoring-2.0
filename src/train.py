@@ -45,7 +45,7 @@ class Train(object):
             None.
         """
         self.home_directory_path = os.getcwd()
-        model_configuration_directory_path = "{}/configs/models/essay_scorer".format(
+        model_configuration_directory_path = "{}/configs/models".format(
             self.home_directory_path
         )
         self.model_configuration = load_json_file(
@@ -103,10 +103,8 @@ class Train(object):
         )
 
         # Creates checkpoint manager for the neural network model and loads the optimizer.
-        self.checkpoint_directory_path = (
-            "{}/models/essay_scorer/v{}/checkpoints".format(
-                self.home_directory_path, self.model_version
-            )
+        self.checkpoint_directory_path = "{}/models/v{}/checkpoints".format(
+            self.home_directory_path, self.model_version
         )
         checkpoint = tf.train.Checkpoint(model=self.model)
         self.manager = tf.train.CheckpointManager(
@@ -146,7 +144,7 @@ class Train(object):
 
         # Creates the following directory path if it does not exist.
         self.reports_directory_path = check_directory_path_existence(
-            "models/essay_scorer/v{}/reports".format(self.model_version)
+            "models/v{}/reports".format(self.model_version)
         )
 
         # Plots the model & saves it as a PNG file.
@@ -631,15 +629,11 @@ class Train(object):
         home_directory_path = os.getcwd()
         tf.saved_model.save(
             exported_model,
-            "{}/models/essay_scorer/v{}/serialized".format(
-                home_directory_path, self.model_version
-            ),
+            "{}/models/v{}/serialized".format(home_directory_path, self.model_version),
         )
 
         # Logs serialized model as artifact.
         mlflow.log_artifacts(
-            "{}/models/essay_scorer/v{}/serialized".format(
-                home_directory_path, self.model_version
-            ),
+            "{}/models/v{}/serialized".format(home_directory_path, self.model_version),
             "v{}/model".format(self.model_configuration["model"]["version"]),
         )
