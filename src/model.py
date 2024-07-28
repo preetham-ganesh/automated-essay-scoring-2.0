@@ -171,19 +171,19 @@ class Model(tf.keras.Model):
             tf.keras.layers.Input(
                 shape=(
                     self.model_configuration["model"]["layers"]["configuration"][
-                        "rnn_0"
-                    ]["units"]
+                        "lstm_0"
+                    ]["units"],
                 )
             ),
             tf.keras.layers.Input(
                 shape=(
                     self.model_configuration["model"]["layers"]["configuration"][
-                        "rnn_0"
-                    ]["units"]
+                        "lstm_0"
+                    ]["units"],
                 )
             ),
             tf.keras.layers.Input(
-                shape=(self.model_configuration["model"]["n_classes"])
+                shape=(self.model_configuration["model"]["n_classes"],)
             ),
         ]
 
