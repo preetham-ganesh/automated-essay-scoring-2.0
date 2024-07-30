@@ -268,7 +268,8 @@ class Train(object):
                         hidden_state_m,
                         hidden_state_c,
                         probabilities,
-                    ]
+                    ],
+                    True,
                 )[0]
                 loss += self.compute_loss(target_batch, probabilities)
                 accuracy += self.compute_accuracy(target_batch, probabilities)
@@ -615,7 +616,7 @@ class Train(object):
                 x: tf.Tensor,
                 hidden_state_m: tf.Tensor,
                 hidden_state_c: tf.Tensor,
-                previous_result: tf.Tensor,
+                probabilities: tf.Tensor,
             ):
                 """Inputs are passed through the model for prediction.
 
@@ -625,13 +626,13 @@ class Train(object):
                     x: A tensor for the input at the current timestep.
                     hidden_state_m: A tensor for the hidden state m passed through RNN layers in the model.
                     hidden_state_c: A tensor for the hidden state c passed through RNN layers in the model.
-                    previous_result: A tensor for the output from the previous input batch.
+                    probabilities: A tensor for the output from the previous input batch.
 
                 Return:
                     A tensor for the output predicted by the encoder for the current image.
                 """
                 prediction = self.model(
-                    [x, hidden_state_m, hidden_state_c, previous_result], False, None
+                    [x, hidden_state_m, hidden_state_c, probabilities]
                 )
                 return prediction
 
