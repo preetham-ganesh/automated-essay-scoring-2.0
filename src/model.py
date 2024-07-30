@@ -58,7 +58,9 @@ class Model(tf.keras.Model):
 
             # If layer's name is like 'dropout_', a Dropout layer is initialized based on layer configuration.
             elif name.split("_")[0] == "dropout":
-                self.model_layers[name] = tf.keras.layers.Dropout(rate=config["rate"])
+                self.model_layers[name] = tf.keras.layers.Dropout(
+                    rate=config["rate"], name=name
+                )
 
             # If layer's name is like 'concatenate_', a Concatenate layer is initialized based on layer configuration.
             elif name.split("_")[0] == "concat":
