@@ -123,6 +123,7 @@ def set_physical_devices_memory_limit() -> None:
         print("GPU is available and will be used as accelerator.")
     else:
         print("GPU is not available, hence the model will be executed on CPU.")
+    print()
 
 
 def save_text_file(text: str, file_name: str, directory_path: str) -> None:

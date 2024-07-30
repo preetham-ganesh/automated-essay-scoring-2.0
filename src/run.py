@@ -19,6 +19,7 @@ from src.train import Train
 
 
 def main():
+    print()
     # Parses the arguments.
     parser = argparse.ArgumentParser()
     parser.add_argument(
