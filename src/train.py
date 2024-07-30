@@ -1,5 +1,6 @@
 import os
 import re
+import time
 
 import tensorflow as tf
 import mlflow
@@ -358,7 +359,7 @@ class Train(object):
         self.train_accuracy.reset_state()
         self.validation_accuracy.reset_state()
 
-    def train_model_per_epoch(self, step: int) -> int:
+    def train_model_per_epoch(self, epoch: int) -> None:
         """Trains the model using train dataset for current epoch.
 
         Trains the model using train dataset for current epoch.
@@ -367,12 +368,14 @@ class Train(object):
             epoch: An integer for the number of current epoch.
 
         Returns:
-            An integer for the updated step count after current epoch.
+            None.
         """
         # Iterates across batches in the train dataset.
         for batch, (texts, scores) in enumerate(
             self.dataset.train_dataset.take(self.dataset.n_train_steps_per_epoch)
         ):
+            batch_start_time = time.time()
+
             # Loads input & target sequences for current batch as tensors.
             input_batch, target_batch = self.dataset.load_input_target_batches(
                 list(texts.numpy()), list(scores.numpy())
@@ -380,16 +383,25 @@ class Train(object):
 
             # Trains the model using the current input and target batch.
             self.train_step(input_batch, target_batch)
-
-            # Logs train metrics for current step.
-            mlflow.log_metrics(
-                {
-                    "train_loss": self.train_loss.result().numpy(),
-                    "train_accuracy": self.train_accuracy.result().numpy(),
-                },
-                step=step + batch,
+            print(
+                "Epoch={}, Batch={}, Train loss={}, Train accuracy={}, Time taken={} sec.".format(
+                    epoch + 1,
+                    batch,
+                    str(round(self.train_loss.result().numpy(), 3)),
+                    str(round(self.train_accuracy.result().numpy(), 3)),
+                    round(time.time() - batch_start_time, 3),
+                )
             )
-        return step
+
+        # Logs train metrics for current step.
+        mlflow.log_metrics(
+            {
+                "train_loss": self.train_loss.result().numpy(),
+                "train_accuracy": self.train_accuracy.result().numpy(),
+            },
+            step=epoch,
+        )
+        print()
 
     def validate_model_per_epoch(self, epoch: int) -> None:
         """Validates the model using validation dataset for current epoch.
@@ -408,6 +420,8 @@ class Train(object):
                 self.dataset.n_validation_steps_per_epoch
             )
         ):
+            batch_start_time = time.time()
+
             # Loads input & target sequences for current batch as tensors.
             input_batch, target_batch = self.dataset.load_input_target_batches(
                 list(texts.numpy()), list(scores.numpy())
@@ -415,6 +429,15 @@ class Train(object):
 
             # Validates the model using the current input and target batch.
             self.validation_step(input_batch, target_batch)
+            print(
+                "Epoch={}, Batch={}, Validation loss={}, Validation accuracy={}, Time taken={} sec.".format(
+                    epoch + 1,
+                    batch,
+                    str(round(self.validation_loss.result().numpy(), 3)),
+                    str(round(self.validation_accuracy.result().numpy(), 3)),
+                    round(time.time() - batch_start_time, 3),
+                )
+            )
 
         # Logs validation metrics for current epoch.
         mlflow.log_metrics(
@@ -424,6 +447,7 @@ class Train(object):
             },
             step=epoch,
         )
+        print()
 
     def save_model(self) -> None:
         """Saves the model after checking performance metrics in current epoch.
@@ -502,17 +526,28 @@ class Train(object):
         self.initialize_metric_trackers()
 
         # Iterates across epochs for training the neural network model.
-        step = 0
-        for epoch in range(self.model_configuration["model"]["epochs"]):
+        for epoch in range(1, self.model_configuration["model"]["epochs"] + 1):
+            epoch_start_time = time.time()
 
             # Resets states for training and validation metrics before the start of each epoch.
             self.reset_trackers()
 
             # Trains the model using batces in the train dataset.
-            step = self.train_model_per_epoch(step)
+            self.train_model_per_epoch(epoch)
 
             # Validates the model using batches in the validation dataset.
             self.validate_model_per_epoch(epoch)
+            print(
+                "Epoch={}, Train loss={}, Validation loss={}, Train Accuracy={}, Validation Accuracy={}, "
+                "Time taken={} sec.".format(
+                    epoch,
+                    str(round(self.train_loss.result().numpy(), 3)),
+                    str(round(self.validation_loss.result().numpy(), 3)),
+                    str(round(self.train_accuracy.result().numpy(), 3)),
+                    str(round(self.validation_accuracy.result().numpy(), 3)),
+                    round(time.time() - epoch_start_time, 3),
+                )
+            )
 
             # Stops the model from learning further if the performance has not improved from previous epoch.
             model_training_status = self.early_stopping()
@@ -557,6 +592,16 @@ class Train(object):
                 "test_accuracy": self.validation_accuracy.result().numpy(),
             }
         )
+        print(
+            "Test loss={}.".format(str(round(self.validation_loss.result().numpy(), 3)))
+        )
+        print(
+            "Test accuracy={}.".format(
+                str(round(self.validation_accuracy.result().numpy(), 3))
+            ),
+        )
+        print("")
+
 
     def serialize_model(self) -> None:
         """Serializes model as TensorFlow module & saves it as MLFlow artifact.
