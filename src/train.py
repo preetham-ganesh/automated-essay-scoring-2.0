@@ -385,7 +385,7 @@ class Train(object):
             self.train_step(input_batch, target_batch)
             print(
                 "Epoch={}, Batch={}, Train loss={}, Train accuracy={}, Time taken={} sec.".format(
-                    epoch + 1,
+                    epoch,
                     batch,
                     str(round(self.train_loss.result().numpy(), 3)),
                     str(round(self.train_accuracy.result().numpy(), 3)),
@@ -431,7 +431,7 @@ class Train(object):
             self.validation_step(input_batch, target_batch)
             print(
                 "Epoch={}, Batch={}, Validation loss={}, Validation accuracy={}, Time taken={} sec.".format(
-                    epoch + 1,
+                    epoch,
                     batch,
                     str(round(self.validation_loss.result().numpy(), 3)),
                     str(round(self.validation_accuracy.result().numpy(), 3)),
@@ -601,7 +601,6 @@ class Train(object):
             ),
         )
         print("")
-
 
     def serialize_model(self) -> None:
         """Serializes model as TensorFlow module & saves it as MLFlow artifact.
