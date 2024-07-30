@@ -269,7 +269,8 @@ class Train(object):
                         hidden_state_c,
                         probabilities,
                     ],
-                    True,
+                    training=True,
+                    masks=None,
                 )[0]
                 loss += self.compute_loss(target_batch, probabilities)
                 accuracy += self.compute_accuracy(target_batch, probabilities)
