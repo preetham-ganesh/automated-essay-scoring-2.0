@@ -95,7 +95,7 @@ class Model(tf.keras.Model):
         x = inputs[0]
         hidden_state_m = inputs[1]
         hidden_state_c = inputs[2]
-        previous_result = inputs[3]
+        probabilities = inputs[3]
 
         # Iterates across the layers arrangement, and predicts the output for each layer.
         for name in self.model_configuration["model"]["layers"]["arrangement"]:
@@ -118,7 +118,7 @@ class Model(tf.keras.Model):
 
             # If layer's name is like 'concat_', the following output is predicted.
             elif name.split("_")[0] == "concat":
-                x = self.model_layers[name]([x, previous_result])
+                x = self.model_layers[name]([x, probabilities])
 
             # Else, the following output is predicted.
             else:
