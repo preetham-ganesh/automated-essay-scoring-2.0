@@ -48,6 +48,8 @@ class Dataset(object):
         self.original_df = pd.read_csv(
             "{}/data/raw_data/train.csv".format(home_directory_path)
         )
+        print("No. of examples in original dataset: {}".format(len(self.original_df)))
+        print()
 
     def preprocess_text(self, text: str) -> str:
         """Preprocess text to remove/normalize unwanted characters.
@@ -121,6 +123,8 @@ class Dataset(object):
 
         # Converts list of dictionaries into dataframe.
         self.processed_df = pd.DataFrame.from_records(self.processed_df)
+        print("No. of examples in processed dataset: {}".format(len(self.processed_df)))
+        print()
 
     def split_dataset(self) -> None:
         """Splits processed essay texts & scores into train, validation & test splits.
@@ -188,6 +192,14 @@ class Dataset(object):
         self.n_train_examples = len(self.train_df)
         self.n_validation_examples = len(self.validation_df)
         self.n_test_examples = len(self.test_df)
+        print("No. of examples in training dataset: {}".format(self.n_train_examples))
+        print(
+            "No. of examples in validation dataset: {}".format(
+                self.n_validation_examples
+            )
+        )
+        print("No. of examples in test dataset: {}".format(self.n_test_examples))
+        print()
 
     def train_tokenizer(self) -> None:
         """Trains the SentencePiece tokenizer on the processed texts from the dataset.
@@ -221,6 +233,10 @@ class Dataset(object):
                 self.model_configuration["tokenizer"]["name"],
             ),
             vocab_size=self.model_configuration["tokenizer"]["vocab_size"],
+            unk_id=0,
+            bos_id=1,
+            eos_id=2,
+            pad_id=-1,
         )
 
         # Logs the trained tokenizer model.
@@ -289,6 +305,14 @@ class Dataset(object):
             self.n_validation_examples // self.batch_size
         )
         self.n_test_steps_per_epoch = self.n_test_examples // self.batch_size
+        print("No. of train steps per epoch: {}".format(self.n_train_steps_per_epoch))
+        print(
+            "No. of validation steps per epoch: {}".format(
+                self.n_validation_steps_per_epoch
+            )
+        )
+        print("No. of test steps: {}".format(self.n_test_steps_per_epoch))
+        print()
 
     def load_input_target_batches(
         self, texts: List[str], scores: List[int]
@@ -322,6 +346,7 @@ class Dataset(object):
             input_batch,
             padding="post",
             maxlen=self.model_configuration["model"]["max_length"],
+            value=-1,
         )
         input_batch = tf.convert_to_tensor(input_batch, dtype=tf.int32)
 
