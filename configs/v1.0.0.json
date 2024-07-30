@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "split_percentage": { "validation": 0.05, "test": 0.05 }
   },
-  "tokenizer": { "name": "tokenizer", "vocab_size": 8192 },
+  "tokenizer": { "name": "tokenizer", "vocab_size": 4096 },
   "model": {
     "epochs": 20,
     "batch_size": 64,
@@ -14,15 +14,13 @@
     "max_length": 50,
     "optimizer": {
       "name": "adam",
-      "learning_rate": 0.001
+      "learning_rate": 0.0005
     },
     "layers": {
       "arrangement": [
         "embedding_0",
         "lstm_0",
         "dropout_0",
-        "lstm_1",
-        "dropout_1",
         "concat_0",
         "dense_0",
         "dense_1",
@@ -31,7 +29,7 @@
       "configuration": {
         "embedding_0": {
           "name": "embedding_0",
-          "input_dim": 8192,
+          "input_dim": 4096,
           "output_dim": 512
         },
         "lstm_0": {
@@ -41,13 +39,6 @@
           "return_sequences": true
         },
         "dropout_0": { "rate": 0.3, "name": "dropout_0" },
-        "lstm_1": {
-          "name": "lstm_1",
-          "units": 512,
-          "return_state": false,
-          "return_sequences": false
-        },
-        "dropout_1": { "rate": 0.3, "name": "dropout_1" },
         "concat_0": { "name": "concat_0", "axis": -1 },
         "dense_0": { "name": "dense_0", "units": 128, "activation": "relu" },
         "dense_1": { "name": "dense_1", "units": 32, "activation": "relu" },
