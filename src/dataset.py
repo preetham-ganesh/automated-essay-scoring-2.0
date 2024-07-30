@@ -117,7 +117,7 @@ class Dataset(object):
                 continue
 
             # Processed text & score is added to the lists.
-            self.processed_df.append({"text": text, "score": score})
+            self.processed_df.append({"text": text, "score": score - 1})
 
         # Converts list of dictionaries into dataframe.
         self.processed_df = pd.DataFrame.from_records(self.processed_df)

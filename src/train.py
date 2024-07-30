@@ -199,7 +199,7 @@ class Train(object):
             A tensor for the loss computed on comparing target & predicted batch.
         """
         # Computes loss for the current batch using actual values and predicted values.
-        self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
+        self.loss_object = tf.keras.losses.CategoricalCrossentropy(
             from_logits=True, reduction="none"
         )
         loss = self.loss_object(target_batch, predicted_batch)
@@ -220,9 +220,7 @@ class Train(object):
             A tensor for the accuracy of current batch.
         """
         # Computes accuracy for the current batch using actual values and predicted values.
-        accuracy = tf.keras.metrics.sparse_categorical_accuracy(
-            target_batch, predicted_batch
-        )
+        accuracy = tf.keras.metrics.categorical_accuracy(target_batch, predicted_batch)
         return accuracy
 
     @tf.function
