@@ -138,7 +138,7 @@ class Model(tf.keras.Model):
             rnn_size: An integer for the no. of neurons in the RNN layer.
 
         Returns:
-            A list of tensors for the previous result, hidden states m & c used in the RNN layer.
+            A list of tensors for the hidden states m & c and probabilities used in the RNN layer.
         """
         # Checks type & values of arguments.
         assert isinstance(
@@ -146,11 +146,11 @@ class Model(tf.keras.Model):
         ), "Variable batch_size should be of type 'int'."
         assert isinstance(rnn_size, int), "Variable rnn_size should be of type 'int'."
 
-        # Creates empty tensors for hidden states h & c.
-        previous_result = tf.ones((batch_size, n_classes)) / n_classes
+        # Creates empty tensors probabilities for hidden states h & c.
+        probabilities = tf.ones((batch_size, n_classes)) / n_classes
         hidden_state_m = tf.zeros((batch_size, rnn_size))
         hidden_state_c = tf.zeros((batch_size, rnn_size))
-        return [previous_result, hidden_state_m, hidden_state_c]
+        return [hidden_state_m, hidden_state_c, probabilities]
 
     def build_graph(self) -> tf.keras.Model:
         """Builds plottable graph for the model.
