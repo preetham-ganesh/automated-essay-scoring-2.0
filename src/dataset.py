@@ -317,14 +317,17 @@ class Dataset(object):
             # Appends encoded input sequence into list.
             input_batch.append(input_sequence)
 
-        # Pads sequences in input batch with 0 in the end.
+        # Pads sequences in input batch with 0 in the end & convert it to tensor of type 'int32'.
         input_batch = tf.keras.preprocessing.sequence.pad_sequences(
             input_batch,
             padding="post",
             maxlen=self.model_configuration["model"]["max_length"],
         )
-
-        # Converts input & target batch lists into tensors.
         input_batch = tf.convert_to_tensor(input_batch, dtype=tf.int32)
-        target_batch = tf.convert_to_tensor(scores, dtype=tf.int32)
+
+        # Converts scores into categorical tensor.
+        target_batch = tf.keras.utils.to_categorical(
+            scores, num_classes=self.model_configuration["model"]["n_classes"]
+        )
+        target_batch = tf.convert_to_tensor(target_batch, dtype=tf.int8)
         return [input_batch, target_batch]
