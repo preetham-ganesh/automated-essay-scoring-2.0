@@ -40,14 +40,14 @@
           "return_state": true,
           "return_sequences": true
         },
-        "dropout_0": { "rate": 0.3 },
+        "dropout_0": { "rate": 0.3, "name": "dropout_0" },
         "lstm_1": {
           "name": "lstm_1",
           "units": 512,
           "return_state": false,
           "return_sequences": false
         },
-        "dropout_1": { "rate": 0.3 },
+        "dropout_1": { "rate": 0.3, "name": "dropout_1" },
         "concat_0": { "name": "concat_0", "axis": -1 },
         "dense_0": { "name": "dense_0", "units": 128, "activation": "relu" },
         "dense_1": { "name": "dense_1", "units": 32, "activation": "relu" },
