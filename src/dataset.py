@@ -9,7 +9,7 @@ import mlflow
 from mlflow.data import from_pandas
 import tensorflow as tf
 
-from utils import save_text_file
+from utils import save_text_file, check_directory_path_existence
 
 from typing import Dict, Any, List
 
@@ -48,6 +48,8 @@ class Dataset(object):
         self.original_df = pd.read_csv(
             "{}/data/raw_data/train.csv".format(home_directory_path)
         )
+        print("No. of examples in original dataset: {}".format(len(self.original_df)))
+        print()
 
     def preprocess_text(self, text: str) -> str:
         """Preprocess text to remove/normalize unwanted characters.
@@ -117,10 +119,12 @@ class Dataset(object):
                 continue
 
             # Processed text & score is added to the lists.
-            self.processed_df.append({"text": text, "score": score})
+            self.processed_df.append({"text": text, "score": score - 1})
 
         # Converts list of dictionaries into dataframe.
         self.processed_df = pd.DataFrame.from_records(self.processed_df)
+        print("No. of examples in processed dataset: {}".format(len(self.processed_df)))
+        print()
 
     def split_dataset(self) -> None:
         """Splits processed essay texts & scores into train, validation & test splits.
@@ -188,6 +192,14 @@ class Dataset(object):
         self.n_train_examples = len(self.train_df)
         self.n_validation_examples = len(self.validation_df)
         self.n_test_examples = len(self.test_df)
+        print("No. of examples in training dataset: {}".format(self.n_train_examples))
+        print(
+            "No. of examples in validation dataset: {}".format(
+                self.n_validation_examples
+            )
+        )
+        print("No. of examples in test dataset: {}".format(self.n_test_examples))
+        print()
 
     def train_tokenizer(self) -> None:
         """Trains the SentencePiece tokenizer on the processed texts from the dataset.
@@ -208,25 +220,33 @@ class Dataset(object):
         # Saves string as a text file.
         save_text_file(combined_text, "temp", "")
 
+        # Checks if the following directory path exists. If not, then creates it.
+        tokenizer_directory_path = check_directory_path_existence(
+            "models/v{}".format(self.model_configuration["version"])
+        )
+
         # Train a SentencePiece model using the temporary file.
         spm.SentencePieceTrainer.train(
             input="temp.txt",
-            model_prefix="{}/models/v{}/{}".format(
-                home_directory_path,
-                self.model_configuration["model"]["version"],
+            model_prefix="{}/{}".format(
+                tokenizer_directory_path,
                 self.model_configuration["tokenizer"]["name"],
             ),
-            vocab_size=8000,
+            vocab_size=self.model_configuration["tokenizer"]["vocab_size"],
+            unk_id=0,
+            bos_id=1,
+            eos_id=2,
+            pad_id=-1,
         )
 
         # Logs the trained tokenizer model.
         mlflow.log_artifact(
             "{}/models/v{}/{}.model".format(
                 home_directory_path,
-                self.model_configuration["model"]["version"],
+                self.model_configuration["version"],
                 self.model_configuration["tokenizer"]["name"],
             ),
-            "v{}".format(self.model_configuration["model"]["version"]),
+            "v{}".format(self.model_configuration["version"]),
         )
 
         # Deletes the combined text file.
@@ -237,7 +257,7 @@ class Dataset(object):
         self.spp.load(
             "{}/models/v{}/{}.model".format(
                 home_directory_path,
-                self.model_configuration["model"]["version"],
+                self.model_configuration["version"],
                 self.model_configuration["tokenizer"]["name"],
             )
         )
@@ -285,6 +305,14 @@ class Dataset(object):
             self.n_validation_examples // self.batch_size
         )
         self.n_test_steps_per_epoch = self.n_test_examples // self.batch_size
+        print("No. of train steps per epoch: {}".format(self.n_train_steps_per_epoch))
+        print(
+            "No. of validation steps per epoch: {}".format(
+                self.n_validation_steps_per_epoch
+            )
+        )
+        print("No. of test steps: {}".format(self.n_test_steps_per_epoch))
+        print()
 
     def load_input_target_batches(
         self, texts: List[str], scores: List[int]
@@ -307,20 +335,24 @@ class Dataset(object):
         for index in range(self.batch_size):
             # Tokenizes text, and encodes it as IDs.
             input_sequence = (
-                [self.spp.id_to_piece(1)]
-                + self.spp.EncodeAsIds(str(texts[index], "UTF-8"))
-                + [self.spp.id_to_piece(2)]
+                [1] + self.spp.EncodeAsIds(str(texts[index], "UTF-8")) + [2]
             )
 
             # Appends encoded input sequence into list.
             input_batch.append(input_sequence)
 
-        # Pads sequences in input batch with 0 in the end.
+        # Pads sequences in input batch with 0 in the end & convert it to tensor of type 'int32'.
         input_batch = tf.keras.preprocessing.sequence.pad_sequences(
-            input_batch, padding="post"
+            input_batch,
+            padding="post",
+            maxlen=self.model_configuration["model"]["max_length"],
+            value=-1,
         )
-
-        # Converts input & target batch lists into tensors.
         input_batch = tf.convert_to_tensor(input_batch, dtype=tf.int32)
-        target_batch = tf.convert_to_tensor(scores, dtype=tf.int32)
+
+        # Converts scores into categorical tensor.
+        target_batch = tf.keras.utils.to_categorical(
+            scores, num_classes=self.model_configuration["model"]["n_classes"]
+        )
+        target_batch = tf.convert_to_tensor(target_batch, dtype=tf.int8)
         return [input_batch, target_batch]

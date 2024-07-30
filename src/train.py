@@ -1,5 +1,6 @@
 import os
 import re
+import time
 
 import tensorflow as tf
 import mlflow
@@ -45,7 +46,7 @@ class Train(object):
             None.
         """
         self.home_directory_path = os.getcwd()
-        model_configuration_directory_path = "{}/configs/models/essay_scorer".format(
+        model_configuration_directory_path = "{}/configs".format(
             self.home_directory_path
         )
         self.model_configuration = load_json_file(
@@ -81,6 +82,11 @@ class Train(object):
         # Converts list of texts & scores into TensorFlow dataset.
         self.dataset.shuffle_slice_dataset()
 
+        # Updates model configuration with trained tokenizer vocab size.
+        self.model_configuration["model"]["layers"]["configuration"]["embedding_0"][
+            "input_dim"
+        ] = (self.dataset.spp.get_piece_size() + 2)
+
     def load_model(self, mode: str) -> None:
         """Loads model & other utilies for training.
 
@@ -103,10 +109,8 @@ class Train(object):
         )
 
         # Creates checkpoint manager for the neural network model and loads the optimizer.
-        self.checkpoint_directory_path = (
-            "{}/models/essay_scorer/v{}/checkpoints".format(
-                self.home_directory_path, self.model_version
-            )
+        self.checkpoint_directory_path = "{}/models/v{}/checkpoints".format(
+            self.home_directory_path, self.model_version
         )
         checkpoint = tf.train.Checkpoint(model=self.model)
         self.manager = tf.train.CheckpointManager(
@@ -141,12 +145,12 @@ class Train(object):
         model_summary = "\n".join(model_summary)
         mlflow.log_text(
             model_summary,
-            "v{}/summary.txt".format(self.model_configuration["model"]["version"]),
+            "v{}/summary.txt".format(self.model_configuration["version"]),
         )
 
         # Creates the following directory path if it does not exist.
         self.reports_directory_path = check_directory_path_existence(
-            "models/essay_scorer/v{}/reports".format(self.model_version)
+            "models/v{}/reports".format(self.model_version)
         )
 
         # Plots the model & saves it as a PNG file.
@@ -162,7 +166,7 @@ class Train(object):
             # Logs the saved model plot PNG file.
             mlflow.log_artifact(
                 "{}/model_plot.png".format(self.reports_directory_path),
-                "v{}".format(self.model_configuration["model"]["version"]),
+                "v{}".format(self.model_configuration["version"]),
             )
 
     def initialize_metric_trackers(self) -> None:
@@ -196,7 +200,7 @@ class Train(object):
             A tensor for the loss computed on comparing target & predicted batch.
         """
         # Computes loss for the current batch using actual values and predicted values.
-        self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
+        self.loss_object = tf.keras.losses.CategoricalCrossentropy(
             from_logits=True, reduction="none"
         )
         loss = self.loss_object(target_batch, predicted_batch)
@@ -217,9 +221,7 @@ class Train(object):
             A tensor for the accuracy of current batch.
         """
         # Computes accuracy for the current batch using actual values and predicted values.
-        accuracy = tf.keras.metrics.sparse_categorical_accuracy(
-            target_batch, predicted_batch
-        )
+        accuracy = tf.keras.metrics.categorical_accuracy(target_batch, predicted_batch)
         return accuracy
 
     @tf.function
@@ -235,12 +237,12 @@ class Train(object):
         Returns:
             None.
         """
-        # Initializes the hidden states from the decoder for each batch.
-        previous_result, decoder_hidden_state_m, decoder_hidden_state_c = (
+        # Initializes the hidden states & starting probabilities from the model for each batch.
+        hidden_state_m, hidden_state_c, probabilities = (
             self.model.initialize_other_inputs(
                 target_batch.shape[0],
                 self.model_configuration["model"]["n_classes"],
-                self.model_configuration["model"]["layers"]["configuration"]["rnn_0"][
+                self.model_configuration["model"]["layers"]["configuration"]["lstm_0"][
                     "units"
                 ],
             )
@@ -250,27 +252,32 @@ class Train(object):
         loss = 0
         accuracy = 0
         with tf.GradientTape() as tape:
+            n_subsequences = 0
             for id_0 in range(
-                0, input_batch.shape[0], self.model_configuration["model"]["max_length"]
+                0, input_batch.shape[1], self.model_configuration["model"]["max_length"]
             ):
                 # Predicts output for current subphrase & computes loss & accuracy.
-                predictions = self.model(
+                probabilities = self.model(
                     [
                         input_batch[
+                            :,
                             id_0 : id_0
-                            + self.model_configuration["model"]["max_length"]
+                            + self.model_configuration["model"]["max_length"],
                         ],
-                        decoder_hidden_state_m,
-                        decoder_hidden_state_c,
-                        previous_result,
-                    ]
-                )
-                loss += self.compute_loss(target_batch, predictions)
-                accuracy += self.compute_accuracy(target_batch, predictions)
+                        hidden_state_m,
+                        hidden_state_c,
+                        probabilities,
+                    ],
+                    training=True,
+                    masks=None,
+                )[0]
+                loss += self.compute_loss(target_batch, probabilities)
+                accuracy += self.compute_accuracy(target_batch, probabilities)
+                n_subsequences += 1
 
         # Computes batch loss & accuracy.
-        batch_loss = loss / input_batch.shape[1]
-        batch_accuracy = accuracy / input_batch.shape[1]
+        batch_loss = loss / n_subsequences
+        batch_accuracy = accuracy / n_subsequences
 
         # Computes gradients using loss and model variables.
         gradients = tape.gradient(loss, self.model.trainable_variables)
@@ -295,11 +302,11 @@ class Train(object):
             None.
         """
         # Initializes the hidden states from the decoder for each batch.
-        previous_result, decoder_hidden_state_m, decoder_hidden_state_c = (
+        hidden_state_m, hidden_state_c, probabilities = (
             self.model.initialize_other_inputs(
                 target_batch.shape[0],
                 self.model_configuration["model"]["n_classes"],
-                self.model_configuration["model"]["layers"]["configuration"]["rnn_0"][
+                self.model_configuration["model"]["layers"]["configuration"]["lstm_0"][
                     "units"
                 ],
             )
@@ -308,26 +315,29 @@ class Train(object):
         # Iterates across tokenized & encoded subphrases in input batch.
         loss = 0
         accuracy = 0
+        n_subsequences = 0
         for id_0 in range(
-            0, input_batch.shape[0], self.model_configuration["model"]["max_length"]
+            0, input_batch.shape[1], self.model_configuration["model"]["max_length"]
         ):
             # Predicts output for current subphrase & computes loss & accuracy.
-            predictions = self.model(
+            probabilities = self.model(
                 [
                     input_batch[
-                        id_0 : id_0 + self.model_configuration["model"]["max_length"]
+                        :,
+                        id_0 : id_0 + self.model_configuration["model"]["max_length"],
                     ],
-                    decoder_hidden_state_m,
-                    decoder_hidden_state_c,
-                    previous_result,
+                    hidden_state_m,
+                    hidden_state_c,
+                    probabilities,
                 ]
-            )
-            loss += self.compute_loss(target_batch, predictions)
-            accuracy += self.compute_accuracy(target_batch, predictions)
+            )[0]
+            loss += self.compute_loss(target_batch, probabilities)
+            accuracy += self.compute_accuracy(target_batch, probabilities)
+            n_subsequences += 1
 
         # Computes batch loss & accuracy.
-        batch_loss = loss / input_batch.shape[1]
-        batch_accuracy = accuracy / input_batch.shape[1]
+        batch_loss = loss / n_subsequences
+        batch_accuracy = accuracy / n_subsequences
 
         # Appends batch loss & accuracy to main metrics.
         self.validation_loss(batch_loss)
@@ -344,12 +354,12 @@ class Train(object):
         Returns:
             None.
         """
-        self.train_loss.reset_states()
-        self.validation_loss.reset_states()
-        self.train_accuracy.reset_states()
-        self.validation_accuracy.reset_states()
+        self.train_loss.reset_state()
+        self.validation_loss.reset_state()
+        self.train_accuracy.reset_state()
+        self.validation_accuracy.reset_state()
 
-    def train_model_per_epoch(self, step: int) -> int:
+    def train_model_per_epoch(self, epoch: int) -> None:
         """Trains the model using train dataset for current epoch.
 
         Trains the model using train dataset for current epoch.
@@ -358,12 +368,14 @@ class Train(object):
             epoch: An integer for the number of current epoch.
 
         Returns:
-            An integer for the updated step count after current epoch.
+            None.
         """
         # Iterates across batches in the train dataset.
         for batch, (texts, scores) in enumerate(
             self.dataset.train_dataset.take(self.dataset.n_train_steps_per_epoch)
         ):
+            batch_start_time = time.time()
+
             # Loads input & target sequences for current batch as tensors.
             input_batch, target_batch = self.dataset.load_input_target_batches(
                 list(texts.numpy()), list(scores.numpy())
@@ -371,15 +383,25 @@ class Train(object):
 
             # Trains the model using the current input and target batch.
             self.train_step(input_batch, target_batch)
-
-            # Logs train metrics for current step.
-            mlflow.log_metrics(
-                {
-                    "train_loss": self.train_loss.result().numpy(),
-                    "train_accuracy": self.train_accuracy.result().numpy(),
-                },
-                step=step + batch,
+            print(
+                "Epoch={}, Batch={}, Train loss={}, Train accuracy={}, Time taken={} sec.".format(
+                    epoch,
+                    batch,
+                    str(round(self.train_loss.result().numpy(), 3)),
+                    str(round(self.train_accuracy.result().numpy(), 3)),
+                    round(time.time() - batch_start_time, 3),
+                )
             )
+
+        # Logs train metrics for current step.
+        mlflow.log_metrics(
+            {
+                "train_loss": self.train_loss.result().numpy(),
+                "train_accuracy": self.train_accuracy.result().numpy(),
+            },
+            step=epoch,
+        )
+        print()
 
     def validate_model_per_epoch(self, epoch: int) -> None:
         """Validates the model using validation dataset for current epoch.
@@ -398,6 +420,8 @@ class Train(object):
                 self.dataset.n_validation_steps_per_epoch
             )
         ):
+            batch_start_time = time.time()
+
             # Loads input & target sequences for current batch as tensors.
             input_batch, target_batch = self.dataset.load_input_target_batches(
                 list(texts.numpy()), list(scores.numpy())
@@ -405,6 +429,15 @@ class Train(object):
 
             # Validates the model using the current input and target batch.
             self.validation_step(input_batch, target_batch)
+            print(
+                "Epoch={}, Batch={}, Validation loss={}, Validation accuracy={}, Time taken={} sec.".format(
+                    epoch,
+                    batch,
+                    str(round(self.validation_loss.result().numpy(), 3)),
+                    str(round(self.validation_accuracy.result().numpy(), 3)),
+                    round(time.time() - batch_start_time, 3),
+                )
+            )
 
         # Logs validation metrics for current epoch.
         mlflow.log_metrics(
@@ -414,6 +447,7 @@ class Train(object):
             },
             step=epoch,
         )
+        print()
 
     def save_model(self) -> None:
         """Saves the model after checking performance metrics in current epoch.
@@ -492,7 +526,8 @@ class Train(object):
         self.initialize_metric_trackers()
 
         # Iterates across epochs for training the neural network model.
-        for epoch in range(self.model_configuration["model"]["epochs"]):
+        for epoch in range(1, self.model_configuration["model"]["epochs"] + 1):
+            epoch_start_time = time.time()
 
             # Resets states for training and validation metrics before the start of each epoch.
             self.reset_trackers()
@@ -502,6 +537,17 @@ class Train(object):
 
             # Validates the model using batches in the validation dataset.
             self.validate_model_per_epoch(epoch)
+            print(
+                "Epoch={}, Train loss={}, Validation loss={}, Train Accuracy={}, Validation Accuracy={}, "
+                "Time taken={} sec.".format(
+                    epoch,
+                    str(round(self.train_loss.result().numpy(), 3)),
+                    str(round(self.validation_loss.result().numpy(), 3)),
+                    str(round(self.train_accuracy.result().numpy(), 3)),
+                    str(round(self.validation_accuracy.result().numpy(), 3)),
+                    round(time.time() - epoch_start_time, 3),
+                )
+            )
 
             # Stops the model from learning further if the performance has not improved from previous epoch.
             model_training_status = self.early_stopping()
@@ -546,6 +592,15 @@ class Train(object):
                 "test_accuracy": self.validation_accuracy.result().numpy(),
             }
         )
+        print(
+            "Test loss={}.".format(str(round(self.validation_loss.result().numpy(), 3)))
+        )
+        print(
+            "Test accuracy={}.".format(
+                str(round(self.validation_accuracy.result().numpy(), 3))
+            ),
+        )
+        print("")
 
     def serialize_model(self) -> None:
         """Serializes model as TensorFlow module & saves it as MLFlow artifact.
@@ -562,13 +617,13 @@ class Train(object):
         input_0_shape = [None, self.model_configuration["model"]["max_length"]]
         input_1_shape = [
             None,
-            self.model_configuration["model"]["layers"]["configuration"]["rnn_0"][
+            self.model_configuration["model"]["layers"]["configuration"]["lstm_0"][
                 "units"
             ],
         ]
         input_2_shape = [
             None,
-            self.model_configuration["model"]["layers"]["configuration"]["rnn_0"][
+            self.model_configuration["model"]["layers"]["configuration"]["lstm_0"][
                 "units"
             ],
         ]
@@ -604,7 +659,7 @@ class Train(object):
                 x: tf.Tensor,
                 hidden_state_m: tf.Tensor,
                 hidden_state_c: tf.Tensor,
-                previous_result: tf.Tensor,
+                probabilities: tf.Tensor,
             ):
                 """Inputs are passed through the model for prediction.
 
@@ -614,13 +669,13 @@ class Train(object):
                     x: A tensor for the input at the current timestep.
                     hidden_state_m: A tensor for the hidden state m passed through RNN layers in the model.
                     hidden_state_c: A tensor for the hidden state c passed through RNN layers in the model.
-                    previous_result: A tensor for the output from the previous input batch.
+                    probabilities: A tensor for the output from the previous input batch.
 
                 Return:
                     A tensor for the output predicted by the encoder for the current image.
                 """
                 prediction = self.model(
-                    [x, hidden_state_m, hidden_state_c, previous_result], False, None
+                    [x, hidden_state_m, hidden_state_c, probabilities]
                 )
                 return prediction
 
@@ -631,15 +686,14 @@ class Train(object):
         home_directory_path = os.getcwd()
         tf.saved_model.save(
             exported_model,
-            "{}/models/essay_scorer/v{}/serialized".format(
-                home_directory_path, self.model_version
-            ),
+            "{}/models/v{}/serialized".format(home_directory_path, self.model_version),
         )
 
         # Logs serialized model as artifact.
         mlflow.log_artifacts(
-            "{}/models/essay_scorer/v{}/serialized".format(
-                home_directory_path, self.model_version
-            ),
-            "v{}/model".format(self.model_configuration["model"]["version"]),
+            "{}/models/v{}/serialized".format(home_directory_path, self.model_version),
+            "v{}/model".format(self.model_configuration["version"]),
         )
+
+        # Logs updated model configuration as artifact.
+        mlflow.log_dict(self.model_configuration, "v{}.json".format(self.model_version))

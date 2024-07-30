@@ -31,69 +31,6 @@ def check_directory_path_existence(directory_path: str) -> str:
     return absolute_directory_path
 
 
-def create_log(log_file_name: str, logger_directory_path: str) -> None:
-    """Creates a logger.
-
-    Creates an object for logging terminal output.
-
-    Args:
-        log_file_name: A string for the name for the log file.
-        logger_directory_path: A string for the location where the log file should be stored.
-
-    Returns:
-        None.
-    """
-    # Asserts type of arguments.
-    assert isinstance(
-        logger_directory_path, str
-    ), "Logger_directory_path should be of type 'str'."
-    assert isinstance(
-        log_file_name, str
-    ), "Variable log_file_name should be of type 'str'."
-
-    # Checks if the following path exists.
-    logger_directory_path = check_directory_path_existence(logger_directory_path)
-
-    # Create and configure logger
-    logging.basicConfig(
-        filename="{}/{}.log".format(logger_directory_path, log_file_name),
-        format="%(asctime)s %(message)s",
-        filemode="w",
-    )
-
-    # Creates an object.
-    global logger
-    logger = logging.getLogger()
-
-    # Sets the threshold of logger to DEBUG.
-    logger.setLevel(logging.DEBUG)
-
-
-def add_to_log(log: str) -> None:
-    """Logs current information.
-
-    Saves current log information, and prints it in terminal.
-
-    Args:
-        log: A string for the information that needs to be printed in terminal and saved in log.
-
-    Returns:
-        None.
-
-    Exception:
-        NameError: When the logger is not defined, this exception is thrown.
-    """
-    # Type checks arguments.
-    assert isinstance(log, str), "Variable log should be of type 'str'."
-
-    # Adds current log into log file.
-    try:
-        logger.info(log)
-        print(log)
-    except NameError:
-        raise NameError("Create logger object for adding logs. Use create_log()")
-
-
 def save_json_file(
     dictionary: Dict[Any, Any], file_name: str, directory_path: str
 ) -> None:
@@ -124,7 +61,7 @@ def save_json_file(
     with open(file_path, "w") as out_file:
         json.dump(dictionary, out_file, indent=4)
     out_file.close()
-    add_to_log("{} file saved successfully.".format(file_name))
+    print("{} file saved successfully.".format(file_name))
 
 
 def load_json_file(file_name: str, directory_path: str) -> Dict[Any, Any]:
@@ -183,10 +120,10 @@ def set_physical_devices_memory_limit() -> None:
         gpu_available = False
 
     if gpu_available:
-        add_to_log("GPU is available and will be used as accelerator.")
+        print("GPU is available and will be used as accelerator.")
     else:
-        add_to_log("GPU is not available, hence the model will be executed on CPU.")
-    add_to_log("")
+        print("GPU is not available, hence the model will be executed on CPU.")
+    print()
 
 
 def save_text_file(text: str, file_name: str, directory_path: str) -> None:

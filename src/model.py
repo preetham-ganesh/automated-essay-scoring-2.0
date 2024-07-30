@@ -58,7 +58,9 @@ class Model(tf.keras.Model):
 
             # If layer's name is like 'dropout_', a Dropout layer is initialized based on layer configuration.
             elif name.split("_")[0] == "dropout":
-                self.model_layers[name] = tf.keras.layers.Dropout(rate=config["rate"])
+                self.model_layers[name] = tf.keras.layers.Dropout(
+                    rate=config["rate"], name=name
+                )
 
             # If layer's name is like 'concatenate_', a Concatenate layer is initialized based on layer configuration.
             elif name.split("_")[0] == "concat":
@@ -95,7 +97,7 @@ class Model(tf.keras.Model):
         x = inputs[0]
         hidden_state_m = inputs[1]
         hidden_state_c = inputs[2]
-        previous_result = inputs[3]
+        probabilities = inputs[3]
 
         # Iterates across the layers arrangement, and predicts the output for each layer.
         for name in self.model_configuration["model"]["layers"]["arrangement"]:
@@ -118,7 +120,7 @@ class Model(tf.keras.Model):
 
             # If layer's name is like 'concat_', the following output is predicted.
             elif name.split("_")[0] == "concat":
-                x = self.model_layers[name]([x, previous_result])
+                x = self.model_layers[name]([x, probabilities])
 
             # Else, the following output is predicted.
             else:
@@ -138,7 +140,7 @@ class Model(tf.keras.Model):
             rnn_size: An integer for the no. of neurons in the RNN layer.
 
         Returns:
-            A list of tensors for the previous result, hidden states m & c used in the RNN layer.
+            A list of tensors for the hidden states m & c and probabilities used in the RNN layer.
         """
         # Checks type & values of arguments.
         assert isinstance(
@@ -146,11 +148,11 @@ class Model(tf.keras.Model):
         ), "Variable batch_size should be of type 'int'."
         assert isinstance(rnn_size, int), "Variable rnn_size should be of type 'int'."
 
-        # Creates empty tensors for hidden states h & c.
-        previous_result = tf.ones((batch_size, n_classes)) / n_classes
+        # Creates empty tensors probabilities for hidden states h & c.
+        probabilities = tf.ones((batch_size, n_classes)) / n_classes
         hidden_state_m = tf.zeros((batch_size, rnn_size))
         hidden_state_c = tf.zeros((batch_size, rnn_size))
-        return [previous_result, hidden_state_m, hidden_state_c]
+        return [hidden_state_m, hidden_state_c, probabilities]
 
     def build_graph(self) -> tf.keras.Model:
         """Builds plottable graph for the model.
@@ -171,19 +173,19 @@ class Model(tf.keras.Model):
             tf.keras.layers.Input(
                 shape=(
                     self.model_configuration["model"]["layers"]["configuration"][
-                        "rnn_0"
-                    ]["units"]
+                        "lstm_0"
+                    ]["units"],
                 )
             ),
             tf.keras.layers.Input(
                 shape=(
                     self.model_configuration["model"]["layers"]["configuration"][
-                        "rnn_0"
-                    ]["units"]
+                        "lstm_0"
+                    ]["units"],
                 )
             ),
             tf.keras.layers.Input(
-                shape=(self.model_configuration["model"]["n_classes"])
+                shape=(self.model_configuration["model"]["n_classes"],)
             ),
         ]
 
