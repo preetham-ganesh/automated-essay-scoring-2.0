@@ -22,7 +22,7 @@
         "lstm_0",
         "dropout_0",
         "lstm_1",
-        "dropout_2",
+        "dropout_1",
         "concat_0",
         "dense_0",
         "dense_1",
