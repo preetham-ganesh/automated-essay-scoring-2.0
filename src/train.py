@@ -238,8 +238,8 @@ class Train(object):
         Returns:
             None.
         """
-        # Initializes the hidden states from the decoder for each batch.
-        previous_result, decoder_hidden_state_m, decoder_hidden_state_c = (
+        # Initializes the hidden states & starting probabilities from the model for each batch.
+        hidden_state_m, hidden_state_c, probabilities = (
             self.model.initialize_other_inputs(
                 target_batch.shape[0],
                 self.model_configuration["model"]["n_classes"],
@@ -258,20 +258,20 @@ class Train(object):
                 0, input_batch.shape[1], self.model_configuration["model"]["max_length"]
             ):
                 # Predicts output for current subphrase & computes loss & accuracy.
-                predictions = self.model(
+                probabilities = self.model(
                     [
                         input_batch[
                             :,
                             id_0 : id_0
                             + self.model_configuration["model"]["max_length"],
                         ],
-                        decoder_hidden_state_m,
-                        decoder_hidden_state_c,
-                        previous_result,
+                        hidden_state_m,
+                        hidden_state_c,
+                        probabilities,
                     ]
-                )
-                loss += self.compute_loss(target_batch, predictions[0])
-                accuracy += self.compute_accuracy(target_batch, predictions[0])
+                )[0]
+                loss += self.compute_loss(target_batch, probabilities)
+                accuracy += self.compute_accuracy(target_batch, probabilities)
                 n_subsequences += 1
 
         # Computes batch loss & accuracy.
