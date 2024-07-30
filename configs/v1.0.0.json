@@ -35,8 +35,8 @@
         "lstm_0": {
           "name": "lstm_0",
           "units": 512,
-          "return_state": true,
-          "return_sequences": true
+          "return_state": false,
+          "return_sequences": false
         },
         "dropout_0": { "rate": 0.3, "name": "dropout_0" },
         "concat_0": { "name": "concat_0", "axis": -1 },
