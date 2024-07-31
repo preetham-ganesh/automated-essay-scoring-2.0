@@ -219,3 +219,26 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         """
         angle_rates = 1 / np.power(10000, (2 * (indices // 2)) / self.units)
         return positions * angle_rates
+
+    def positional_encoding(self, n_max_positions: int, units: int) -> tf.Tensor:
+        """Generate the positional encoding matrix.
+
+        Creates a matrix of positional encodings based on the input position and model dimensionality.
+
+        position (int): The maximum number of positions (sequence length) for which to create positional encodings.
+        d_model (int): The dimensionality of the model (number of encoding dimensions).
+
+        Args:
+            n_max_positions: An integer for the maximum no. of positions to create positional encodings.
+            units: An integer for the dimensionality of the model.
+
+        Returns:
+            A tensor containing the positional encoding matrix with shape (1, position, d_model).
+        """
+        angle_rads = self.get_angles(
+            np.arange(n_max_positions)[:, np.newaxis], np.arange(units)[np.newaxis, :]
+        )
+        angle_rads[:, 0::2] = np.sin(angle_rads[:, 0::2])
+        angle_rads[:, 1::2] = np.cos(angle_rads[:, 1::2])
+        pos_encoding = angle_rads[np.newaxis, ...]
+        return tf.cast(pos_encoding, dtype=tf.float32)
