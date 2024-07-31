@@ -191,3 +191,15 @@ class RNNClassifier(tf.keras.Model):
 
         # Creates an object for the tensorflow model and returns it.
         return tf.keras.Model(inputs=inputs, outputs=self.call(inputs))
+
+
+class PositionalEmbedding(tf.keras.layers.Layer):
+    """"""
+
+    def __init__(self, max_positional_encoding: int, units: int) -> None:
+        """"""
+        super(PositionalEmbedding, self).__init__()
+
+        # Initializes class variables.
+        self.pos_encoding = self.positional_encoding(max_positional_encoding, units)
+        self.units = tf.cast(units, dtype=tf.float32)
