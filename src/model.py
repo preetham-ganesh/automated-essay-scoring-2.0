@@ -279,7 +279,7 @@ class PositionalEmbedding(tf.keras.layers.Layer):
 
 
 class MultiHeadAttention(tf.keras.layers.Layer):
-    """"""
+    """A tensorflow layer to compute multi-head attention."""
 
     def __init__(self, units: int, n_heads: int) -> None:
         """Initializes the MultiHeadAttention layer.
@@ -302,6 +302,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         self.w_q = tf.keras.layers.Dense(units)
         self.w_k = tf.keras.layers.Dense(units)
         self.w_v = tf.keras.layers.Dense(units)
+        self.dense_0 = tf.keras.layers.Dense(units)
 
     def split_heads(self, x: tf.Tensor):
         """Splits the last dimension into (n_heads, depth).
@@ -318,7 +319,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         return tf.transpose(x, perm=[0, 2, 1, 3])
 
     def scaled_dot_product_attention(
-        self, q: tf.Tensor, k: tf.Tensor, v: tf.Tensor, mask: tf.Tensor = None
+        self, q: tf.Tensor, k: tf.Tensor, v: tf.Tensor, masks: List[tf.Tensor] = None
     ):
         """Calculates the scaled dot-product attention.
 
@@ -328,7 +329,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
             q: A tensor for Query of shape (..., seq_len_q, depth).
             k: A tensor for Key of shape (..., seq_len_k, depth).
             v: A tensor for Value of shape (..., seq_len_v, depth_v).
-            mask: A tensor for mask shape broadcastable to (..., seq_len_q, seq_len_k).
+            mask: A list of tensors for mask shape broadcastable to (..., seq_len_q, seq_len_k).
 
         Returns:
             A tensor for the output tensor of the attention mechanism.
@@ -341,10 +342,47 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         scaled_attention_logits = matmul_qk / tf.math.sqrt(dk)
 
         # Adds the mask to the scaled attention logits, if provided, to prevent attending to certain positions.
-        if mask is not None:
-            scaled_attention_logits += mask * -1e9
+        if masks is not None:
+            scaled_attention_logits += masks[0] * -1e9
 
         # Apply the softmax function to get the attention weights & computes the output.
         attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1)
         output = tf.matmul(attention_weights, v)
+        return output
+
+    def call(
+        self,
+        inputs: List[tf.Tensor],
+        training: bool = False,
+        masks: List[tf.Tensor] = None,
+    ):
+        """Applies the multi-head attention mechanism to the input.
+
+        Applies the multi-head attention mechanism to the input.
+
+        Args:
+            inputs: A list of tensors for input to the layer.
+            training: A boolean indicating whether the call is in training mode. Default is False.
+            masks: A list of mask tensors. Default is None.
+
+        Returns:
+            tf.Tensor: Output tensor after applying the multi-head attention mechanism.
+        """
+        # Extracts Query, Key, and Value tensors from inputs.
+        q = self.w_q(inputs[0])
+        k = self.w_k(inputs[1])
+        v = self.w_v(inputs[2])
+
+        # Splits the Query, Key, and Value tensors into multiple heads.
+        q = self.split_heads(q)
+        k = self.split_heads(k)
+        v = self.split_heads(v)
+
+        # Computes scaled attention for Query, Key & Value tensor using the masks.
+        scaled_attention = self.scaled_dot_product_attention(q, k, v, masks)
+        scaled_attention = tf.transpose(scaled_attention, perm=[0, 2, 1, 3])
+        concat_attention = tf.reshape(
+            scaled_attention, (inputs[0].shape[0], -1, self.units)
+        )
+        output = self.dense_0(concat_attention)
         return output
