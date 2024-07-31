@@ -386,3 +386,78 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         )
         output = self.dense_0(concat_attention)
         return output
+
+
+class TransformerClassifier(tf.keras.Model):
+    """A tensorflow transformer classification model to automatically score essays."""
+
+    def __init__(self, model_configuration: Dict[str, Any]) -> None:
+        """Initializes the layers in the classification model.
+
+        Initializes the layers in the classification model, by adding embedding, dropout & dense layers.
+
+        Args:
+            model_configuration: A dictionary for the configuration of model's current version.
+
+        Returns:
+            None.
+        """
+        super(TransformerClassifier, self).__init__()
+
+        # Asserts type of input arguments.
+        assert isinstance(
+            model_configuration, dict
+        ), "Variable model_configuration should be of type 'dict'."
+
+        # Initializes class variables.
+        self.model_configuration = model_configuration
+        self.model_layers = dict()
+
+        # Iterates across layers in the layers arrangement.
+        self.model_layers = dict()
+        for name in self.model_configuration["model"]["layers"]["arrangement"]:
+            config = self.model_configuration["model"]["layers"]["configuration"][name]
+
+            # If layer's name is like 'embedding_', an Embedding layer is initialized based on layer configuration.
+            if name.split("_")[0] == "embedding":
+                self.model_layers[name] = tf.keras.layers.Embedding(
+                    input_dim=config["input_dim"],
+                    output_dim=config["output_dim"],
+                    name=name,
+                )
+
+            # If layer's name is like 'posembedding_', an PositionalEmbedding layer is initialized based on layer
+            # configuration.
+            elif name.split("_")[0] == "posembedding":
+                self.model_layers[name] = PositionalEmbedding(
+                    n_max_positions=config["n_max_positions"],
+                    units=config["units"],
+                )
+
+            # If layer's name is like 'dropout_', a Dropout layer is initialized based on layer configuration.
+            elif name.split("_")[0] == "dropout":
+                self.model_layers[name] = tf.keras.layers.Dropout(
+                    rate=config["rate"], name=name
+                )
+
+            # If layer's name is like 'mha_', a Multi-head attention layer is initialized based on layer configuration.
+            elif name.split("_")[0] == "mha":
+                self.model_layers[name] = MultiHeadAttention(
+                    units=config["units"], n_heads=config["n_heads"]
+                )
+
+            # If layer's name is like 'layernorm', a Normalization layer is initialized based on layer configuration.
+            elif name.split("_")[0] == "layernorm":
+                self.model_layers[name] = tf.keras.layers.LayerNormalization(
+                    epsilon=config["epsilon"], name=name
+                )
+
+            # If layer's name is like 'add', an Add layer is initialized based on layer configuration.
+            elif name.split("_")[0] == "add":
+                self.model_layers[name] = tf.keras.layers.Add()
+
+            # If layer's name is like 'dense_', a Dense layer is initialized based on layer configuration.
+            elif name.split("_")[0] == "dense":
+                self.model_layers[name] = tf.keras.layers.Dense(
+                    units=config["units"], activation=config["activation"], name=name
+                )
