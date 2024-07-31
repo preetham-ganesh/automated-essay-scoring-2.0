@@ -195,14 +195,24 @@ class RNNClassifier(tf.keras.Model):
 
 
 class PositionalEmbedding(tf.keras.layers.Layer):
-    """"""
+    """A tensorflow layer to compute position encoding for input."""
 
-    def __init__(self, max_positional_encoding: int, units: int) -> None:
-        """"""
+    def __init__(self, n_max_positions: int, units: int) -> None:
+        """Initialize the PositionalEmbedding layer.
+
+        Initializes the layer by generating the positional encoding matrix.
+
+        Args:
+            n_max_positions: An integer for the maximum no. of positions to create positional encodings.
+            units: An integer for the dimensionality of the model.
+
+        Returns:
+            None.
+        """
         super(PositionalEmbedding, self).__init__()
 
         # Initializes class variables.
-        self.pos_encoding = self.positional_encoding(max_positional_encoding, units)
+        self.pos_encoding = self.positional_encoding(n_max_positions, units)
         self.units = tf.cast(units, dtype=tf.float32)
 
     def get_angles(self, positions: np.ndarray, indices: np.ndarray):
@@ -242,3 +252,27 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         angle_rads[:, 1::2] = np.cos(angle_rads[:, 1::2])
         pos_encoding = angle_rads[np.newaxis, ...]
         return tf.cast(pos_encoding, dtype=tf.float32)
+
+    def call(
+        self,
+        inputs: List[tf.Tensor],
+        training: bool = False,
+        masks: List[tf.Tensor] = None,
+    ):
+        """Applies positional encoding to the input tensor.
+
+        Applies positional encoding to the first tensor in the list. The encoding is scaled by the square root
+        of the number of units and then added to the input tensor.
+
+        Args:
+            inputs: A list of tensors, where the first tensor is the one to which positional encoding will be applied.
+            training: A boolean indicating whether the call is in training mode. Default is False.
+            masks: A list of mask tensors. Default is None.
+
+        Returns:
+            A list containing the input tensor with positional encoding applied.
+        """
+        x = inputs[0]
+        x *= tf.math.sqrt(self.units)
+        x += self.pos_encoding[:, : tf.shape(x)[1], :]
+        return [x]
