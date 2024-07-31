@@ -302,3 +302,17 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         self.w_q = tf.keras.layers.Dense(units)
         self.w_k = tf.keras.layers.Dense(units)
         self.w_v = tf.keras.layers.Dense(units)
+
+    def split_heads(self, x: tf.Tensor):
+        """Splits the last dimension into (n_heads, depth).
+
+        Splits the last dimension into (n_heads, depth).
+
+        Args:
+            x: A tensor for which last dimension is split into (n_heads, depth).
+
+        Returns:
+            A reshaped input tensor with shape (batch_size, n_heads, seq_len, depth).
+        """
+        x = tf.reshape(x, shape=(x.shape[0], -1, self.n_heads, self.depth))
+        return tf.transpose(x, perm=[0, 2, 1, 3])
