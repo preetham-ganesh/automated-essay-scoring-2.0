@@ -276,3 +276,29 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         x *= tf.math.sqrt(self.units)
         x += self.pos_encoding[:, : tf.shape(x)[1], :]
         return [x]
+
+
+class MultiHeadAttention(tf.keras.layers.Layer):
+    """"""
+
+    def __init__(self, units: int, n_heads: int) -> None:
+        """Initializes the MultiHeadAttention layer.
+
+        Initializes the MultiHeadAttention layer.
+
+        Args:
+            units: An integer for the dimensionality of the model.
+            n_heads: An integer for the number of attention heads.
+
+        Returns:
+            None.
+        """
+        super(MultiHeadAttention, self).__init__()
+
+        # Initializes class variables.
+        self.units = units
+        self.n_heads = n_heads
+        self.depth = units // n_heads
+        self.w_q = tf.keras.layers.Dense(units)
+        self.w_k = tf.keras.layers.Dense(units)
+        self.w_v = tf.keras.layers.Dense(units)
