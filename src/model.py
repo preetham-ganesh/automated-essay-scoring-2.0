@@ -316,3 +316,35 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         """
         x = tf.reshape(x, shape=(x.shape[0], -1, self.n_heads, self.depth))
         return tf.transpose(x, perm=[0, 2, 1, 3])
+
+    def scaled_dot_product_attention(
+        self, q: tf.Tensor, k: tf.Tensor, v: tf.Tensor, mask: tf.Tensor = None
+    ):
+        """Calculates the scaled dot-product attention.
+
+        Calculates the scaled dot-product attention for q, k, and v.
+
+        Args:
+            q: A tensor for Query of shape (..., seq_len_q, depth).
+            k: A tensor for Key of shape (..., seq_len_k, depth).
+            v: A tensor for Value of shape (..., seq_len_v, depth_v).
+            mask: A tensor for mask shape broadcastable to (..., seq_len_q, seq_len_k).
+
+        Returns:
+            A tensor for the output tensor of the attention mechanism.
+        """
+        # Performs matrix multiplication of q and k, transposing k for correct dimensions.
+        matmul_qk = tf.matmul(q, k, transpose_b=True)
+
+        # Calculates scaling factor based on the depth of k.Scales the attention logits by the square root of the depth.
+        dk = tf.cast(tf.shape(k)[-1], tf.float32)
+        scaled_attention_logits = matmul_qk / tf.math.sqrt(dk)
+
+        # Adds the mask to the scaled attention logits, if provided, to prevent attending to certain positions.
+        if mask is not None:
+            scaled_attention_logits += mask * -1e9
+
+        # Apply the softmax function to get the attention weights & computes the output.
+        attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1)
+        output = tf.matmul(attention_weights, v)
+        return output
