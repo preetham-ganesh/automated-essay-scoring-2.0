@@ -3,8 +3,8 @@ import tensorflow as tf
 from typing import Dict, Any, List
 
 
-class Model(tf.keras.Model):
-    """A tensorflow model to automatically score essays."""
+class RNNClassifier(tf.keras.Model):
+    """A tensorflow RNN classification model to automatically score essays."""
 
     def __init__(self, model_configuration: Dict[str, Any]) -> None:
         """Initializes the layers in the classification model.
@@ -17,7 +17,7 @@ class Model(tf.keras.Model):
         Returns:
             None.
         """
-        super(Model, self).__init__()
+        super(RNNClassifier, self).__init__()
 
         # Asserts type of input arguments.
         assert isinstance(
