@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 from typing import Dict, Any, List
 
@@ -203,3 +204,18 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         # Initializes class variables.
         self.pos_encoding = self.positional_encoding(max_positional_encoding, units)
         self.units = tf.cast(units, dtype=tf.float32)
+
+    def get_angles(self, positions: np.ndarray, indices: np.ndarray):
+        """Calculate the angle rates for the positional encoding.
+
+        Computes the angles used in the positional encoding for each position and dimension of the model.
+
+        Args:
+            positions: A numpy array of positions with shape (position, 1).
+            indices: A numpy array of dimension indices with shape (1, d_model).
+
+        Returns:
+            A numpy array containing the calculated angles with shape (position, d_model).
+        """
+        angle_rates = 1 / np.power(10000, (2 * (indices // 2)) / self.units)
+        return positions * angle_rates
