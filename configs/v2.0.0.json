@@ -1,0 +1,42 @@
+{
+  "version": "2.0.0",
+  "dataset": {
+    "name": "Learning Agency Lab - Automated Essay Scoring 2.0",
+    "version": "1.0.0",
+    "split_percentage": { "validation": 0.05, "test": 0.05 }
+  },
+  "tokenizer": { "name": "tokenizer", "vocab_size": 4096 },
+  "model": {
+    "epochs": 20,
+    "batch_size": 64,
+    "n_classes": 6,
+    "max_length": 50,
+    "optimizer": {
+      "name": "adam",
+      "learning_rate": 0.0005
+    },
+    "layers": {
+      "arrangement": [
+        "embedding_0",
+        "pos_embedding_0",
+        "dropout_0",
+        "encoder_layer_0",
+        "encoder_layer_1",
+        "encoder_layer_2",
+        "encoder_layer_3",
+        "encoder_layer_4",
+        "encoder_layer_5",
+        "global_average_pooling_1d",
+        "final"
+      ],
+      "configuration": {
+        "vocab_size": 4096,
+        "units": 512,
+        "rate": 0.3,
+        "n_max_positions": 4096,
+        "n_heads": 2,
+        "ff_units": 2048
+      }
+    }
+  }
+}
