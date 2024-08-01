@@ -678,12 +678,38 @@ class Train(object):
         # Exports trained tensorflow model as tensorflow module for serving.
         exported_model = ExportModel(self.model)
 
+        # Predicts output for the sample input using the Exported model.
+        output_0 = exported_model.predict(
+            tf.ones(input_0_shape, dtype=tf.int32),
+            tf.ones(input_1_shape, dtype=tf.float32),
+            tf.ones(input_2_shape, dtype=tf.float32),
+        )
+
         # Saves the tensorflow object created from the loaded model.
         home_directory_path = os.getcwd()
         tf.saved_model.save(
             exported_model,
             "{}/models/v{}/serialized".format(home_directory_path, self.model_version),
         )
+
+        # Loads the serialized model to check if the loaded model is callable.
+        exported_model = tf.saved_model.load(
+            "{}/models/v{}/serialized".format(home_directory_path, self.model_version),
+        )
+
+        # Predicts output for the sample input using the Exported model.
+        output_1 = exported_model.predict(
+            tf.ones(input_0_shape, dtype=tf.int32),
+            tf.ones(input_1_shape, dtype=tf.float32),
+            tf.ones(input_2_shape, dtype=tf.float32),
+        )
+
+        # Checks if the shape between output from saved & loaded models matches.
+        assert (
+            output_0.shape == output_1.shape
+        ), "Shape does not match between the output from saved & loaded models."
+        print("Finished serializing model & configuration files.")
+        print("")
 
         # Logs serialized model as artifact.
         mlflow.log_artifacts(
