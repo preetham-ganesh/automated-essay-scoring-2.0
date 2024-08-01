@@ -400,6 +400,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
 
 class EncoderLayer(tf.keras.layers.Layer):
+    """"""
 
     def __init__(
         self,
@@ -426,11 +427,31 @@ class EncoderLayer(tf.keras.layers.Layer):
         super(EncoderLayer, self).__init__()
 
         # Initializes the class variables.
+        self.units = units
+        self.ff_units = ff_units
         self.mha = MultiHeadAttention(units, n_heads)
         self.layer_norm_0 = tf.keras.layers.LayerNormalization(epsilon=epsilon)
         self.layer_norm_1 = tf.keras.layers.LayerNormalization(epsilon=epsilon)
         self.dropout_0 = tf.keras.layers.Dropout(rate)
         self.dropout_1 = tf.keras.layers.Dropout(rate)
+
+    def point_wise_feed_forward_network(self) -> tf.keras.Model:
+        """Creates a point-wise feed-forward network.
+
+        Creates a point-wise feed-forward network.
+
+        Args:
+            None.
+
+        Returns:
+            A tensorflow model for the point-wise feed-forward network.
+        """
+        return tf.keras.Sequential(
+            [
+                tf.keras.layers.Dense(self.units, activation="relu"),
+                tf.keras.layers.Dense(self.ff_units),
+            ]
+        )
 
 
 class TransformerClassifier(tf.keras.Model):
