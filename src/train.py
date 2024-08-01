@@ -144,7 +144,7 @@ class Train(object):
         # Loads the optimizer.
         self.optimizer = tf.keras.optimizers.Adam(
             learning_rate=CustomSchedule(
-                self.model_configuration["model"]["configuration"]["units"],
+                self.model_configuration["model"]["layers"]["configuration"]["units"],
                 self.model_configuration["model"]["optimizer"]["learning_rate"][
                     "warmup_steps"
                 ],
