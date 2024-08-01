@@ -706,7 +706,7 @@ class Train(object):
 
         # Checks if the shape between output from saved & loaded models matches.
         assert (
-            output_0.shape == output_1.shape
+            output_0[0].shape == output_1[0].shape
         ), "Shape does not match between the output from saved & loaded models."
         print("Finished serializing model & configuration files.")
         print("")
