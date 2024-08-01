@@ -26,7 +26,7 @@ class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
             None.
         """
         super(CustomSchedule, self).__init__()
-        self.units = tf.cast(self.units, tf.float32)
+        self.units = tf.cast(units, tf.float32)
         self.warmup_steps = warmup_steps
 
     def __call__(self, step: int):
