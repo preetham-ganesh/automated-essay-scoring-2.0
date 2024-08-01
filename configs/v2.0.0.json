@@ -11,6 +11,7 @@
     "batch_size": 64,
     "n_classes": 6,
     "max_length": 50,
+    "type": "transformer",
     "optimizer": {
       "name": "adam",
       "learning_rate": 0.0005

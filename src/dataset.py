@@ -261,6 +261,7 @@ class Dataset(object):
                 self.model_configuration["tokenizer"]["name"],
             )
         )
+        print()
 
     def shuffle_slice_dataset(self) -> None:
         """Converts list of texts & scores into TensorFlow dataset.
