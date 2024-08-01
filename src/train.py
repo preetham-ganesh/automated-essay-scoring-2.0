@@ -29,6 +29,26 @@ class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
         self.units = tf.cast(self.units, tf.float32)
         self.warmup_steps = warmup_steps
 
+    def __call__(self, step: int):
+        """Calculates the learning rate at a given step.
+
+        Calculates the learning rate at a given step.
+
+        Args:
+            step: An integer for the current training step.
+
+        Returns:
+            A tensor for the learning rate for the given step.
+        """
+        # Calculate the inverse square root of the step number.
+        arg1 = tf.math.rsqrt(step)
+
+        # Calculate the step number scaled by the inverse of the 1.5th power of warmup_steps.
+        arg2 = step * (self.warmup_steps**-1.5)
+
+        # Calculate learning rate using minimum of the values above scaled by the inverse square root of the units.
+        return tf.math.rsqrt(self.units) * tf.math.minimum(arg1, arg2)
+
 
 class Train(object):
     """Trains the automatic essay scoring model based on the configuration."""
