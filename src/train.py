@@ -7,7 +7,7 @@ import mlflow
 
 from src.utils import load_json_file, check_directory_path_existence
 from src.dataset import Dataset
-from src.model import Model
+from src.model import RNNClassifier, TransformerClassifier
 
 
 class Train(object):
@@ -83,9 +83,14 @@ class Train(object):
         self.dataset.shuffle_slice_dataset()
 
         # Updates model configuration with trained tokenizer vocab size.
-        self.model_configuration["model"]["layers"]["configuration"]["embedding_0"][
-            "input_dim"
-        ] = (self.dataset.spp.get_piece_size() + 2)
+        if self.model_configuration["model"]["type"] == "rnn":
+            self.model_configuration["model"]["layers"]["configuration"]["embedding_0"][
+                "input_dim"
+            ] = (self.dataset.spp.get_piece_size() + 2)
+        elif self.model_configuration["model"]["type"] == "transformer":
+            self.model_configuration["model"]["layers"]["configuration"][
+                "vocab_size"
+            ] = (self.dataset.spp.get_piece_size() + 2)
 
     def load_model(self, mode: str) -> None:
         """Loads model & other utilies for training.
@@ -99,7 +104,10 @@ class Train(object):
             None.
         """
         # Loads model for current model configuration.
-        self.model = Model(self.model_configuration)
+        if self.model_configuration["model"]["type"] == "rnn":
+            self.model = RNNClassifier(self.model_configuration)
+        elif self.model_configuration["model"]["type"] == "transformer":
+            self.model = TransformerClassifier(self.model_configuration)
 
         # Loads the optimizer.
         self.optimizer = tf.keras.optimizers.Adam(
