@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "split_percentage": { "validation": 0.05, "test": 0.05 }
   },
-  "tokenizer": { "name": "tokenizer", "vocab_size": 4096 },
+  "tokenizer": { "name": "tokenizer", "vocab_size": 8192 },
   "model": {
     "epochs": 20,
     "batch_size": 64,
@@ -13,8 +13,12 @@
     "max_length": 50,
     "type": "transformer",
     "optimizer": {
-      "name": "adam",
-      "learning_rate": 0.0005
+      "learning_rate": {
+        "warmup_steps": 240,
+        "beta_1": 0.9,
+        "beta_2": 0.98,
+        "epsilon": 1e-9
+      }
     },
     "layers": {
       "arrangement": [
@@ -23,16 +27,20 @@
         "dropout_0",
         "encoder_layer_0",
         "encoder_layer_1",
+        "encoder_layer_2",
+        "encoder_layer_3",
+        "encoder_layer_4",
+        "encoder_layer_5",
         "global_average_pooling_1d",
         "concat_0",
         "final"
       ],
       "configuration": {
-        "vocab_size": 4096,
+        "vocab_size": 8192,
         "units": 512,
         "rate": 0.3,
-        "n_max_positions": 50,
-        "n_heads": 2,
+        "n_max_positions": 100,
+        "n_heads": 8,
         "ff_units": 2048
       }
     }

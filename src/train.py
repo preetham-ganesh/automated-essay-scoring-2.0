@@ -27,7 +27,7 @@ class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
         """
         super(CustomSchedule, self).__init__()
         self.units = tf.cast(units, tf.float32)
-        self.warmup_steps = warmup_steps
+        self.warmup_steps = tf.cast(warmup_steps, tf.float32)
 
     def __call__(self, step: int):
         """Calculates the learning rate at a given step.
@@ -41,10 +41,10 @@ class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
             A tensor for the learning rate for the given step.
         """
         # Calculate the inverse square root of the step number.
-        arg1 = tf.math.rsqrt(step)
+        arg1 = tf.math.rsqrt(tf.cast(step, tf.float32))
 
         # Calculate the step number scaled by the inverse of the 1.5th power of warmup_steps.
-        arg2 = step * (self.warmup_steps**-1.5)
+        arg2 = tf.cast(step * (self.warmup_steps**-1.5), dtype=tf.float32)
 
         # Calculate learning rate using minimum of the values above scaled by the inverse square root of the units.
         return tf.math.rsqrt(self.units) * tf.math.minimum(arg1, arg2)
