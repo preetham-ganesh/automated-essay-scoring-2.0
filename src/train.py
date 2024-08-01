@@ -627,9 +627,9 @@ class Train(object):
             None.
         """
         # Defines input shapes for exported model's input signature.
-        input_0_shape = [None, self.model_configuration["model"]["max_length"]]
-        input_1_shape = [None, self.model_configuration["model"]["n_classes"]]
-        input_2_shape = [None, 1, 1, self.model_configuration["model"]["max_length"]]
+        input_0_shape = [1, self.model_configuration["model"]["max_length"]]
+        input_1_shape = [1, self.model_configuration["model"]["n_classes"]]
+        input_2_shape = [1, 1, 1, self.model_configuration["model"]["max_length"]]
 
         class ExportModel(tf.Module):
             """Exports trained tensorflow model as tensorflow module for serving."""
