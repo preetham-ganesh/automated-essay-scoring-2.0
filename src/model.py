@@ -400,7 +400,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
 
 class EncoderLayer(tf.keras.layers.Layer):
-    """"""
+    """A tensorflow layer for encoder in transformer classifier."""
 
     def __init__(
         self,
@@ -430,6 +430,7 @@ class EncoderLayer(tf.keras.layers.Layer):
         self.units = units
         self.ff_units = ff_units
         self.mha = MultiHeadAttention(units, n_heads)
+        self.ffn = self.point_wise_feed_forward_network()
         self.layer_norm_0 = tf.keras.layers.LayerNormalization(epsilon=epsilon)
         self.layer_norm_1 = tf.keras.layers.LayerNormalization(epsilon=epsilon)
         self.dropout_0 = tf.keras.layers.Dropout(rate)
@@ -452,6 +453,31 @@ class EncoderLayer(tf.keras.layers.Layer):
                 tf.keras.layers.Dense(self.ff_units),
             ]
         )
+
+    def call(self, x: tf.Tensor, training: bool = False, mask: tf.Tensor = None):
+        """Applies the encoder layer to the input tensor.
+
+        Applies the encoder layer to the input tensor.
+
+        Args:
+            x: A tensor for the input.
+            training: A boolean flag indicating whether the layer should behave in training mode or inference mode.
+            mask: A tensor representing the mask to be applied to the attention mechanism. Defaults to None.
+
+        Returns:
+            tf.Tensor: The output tensor after applying the encoder layer transformations.
+        """
+        # Applies multi-head attention. Applies layer normalization to the sum of the input and attention output.
+        attention_output = self.mha(x, x, x, mask)
+        attention_output = self.dropout_0(attention_output, training=training)
+        output_0 = self.layer_norm_0(x + attention_output)
+
+        # Applies the feed-forward network to the normalized output. Applies layer normalization to the sum of the
+        # previous output and the feed-forward network output.
+        ffn_output = self.ffn(output_0)
+        ffn_output = self.dropout_1(ffn_output, training=training)
+        output_1 = self.layer_norm_1(output_0 + ffn_output)
+        return output_1
 
 
 class TransformerClassifier(tf.keras.Model):
