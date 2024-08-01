@@ -413,6 +413,24 @@ class TransformerClassifier(tf.keras.Model):
                 x = self.model_layers[name](x)
         return [x]
 
+    def initialize_other_inputs(self, batch_size: int) -> List[tf.Tensor]:
+        """Initializes the probabilities used in the model.
+
+        Initializes the probabilities used in the model.
+
+        Args:
+            batch_size: An integer for the no. of examples in each batch.
+
+        Returns:
+            A list of tensors for other inputs used by the model.
+        """
+        # Creates empty tensors probabilities for hidden states h & c.
+        probabilities = (
+            tf.ones((batch_size, self.model_configuration["model"]["n_classes"]))
+            / self.model_configuration["model"]["n_classes"]
+        )
+        return [probabilities]
+
     def build_graph(self) -> tf.keras.Model:
         """Builds plottable graph for the model.
 
