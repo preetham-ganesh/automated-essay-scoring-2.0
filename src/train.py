@@ -10,6 +10,26 @@ from src.dataset import Dataset
 from src.model import TransformerClassifier
 
 
+class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
+    """Custom learning rate schedule as described in the "Attention is All You Need" paper."""
+
+    def __init__(self, units: int, warmup_steps: int = 200):
+        """Initializes the custom learning rate schedule.
+
+        Initializes the custom learning rate schedule.
+
+        Args:
+            units: An integer for the dimensionality of the model.
+            warmup_steps: An integer for the number of steps for the learning rate warmup.
+
+        Returns:
+            None.
+        """
+        super(CustomSchedule, self).__init__()
+        self.units = tf.cast(self.units, tf.float32)
+        self.warmup_steps = warmup_steps
+
+
 class Train(object):
     """Trains the automatic essay scoring model based on the configuration."""
 
