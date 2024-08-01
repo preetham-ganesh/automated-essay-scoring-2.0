@@ -212,8 +212,8 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         super(PositionalEmbedding, self).__init__()
 
         # Initializes class variables.
-        self.pos_encoding = self.positional_encoding(n_max_positions, units)
         self.units = tf.cast(units, dtype=tf.float32)
+        self.pos_encoding = self.positional_encoding(n_max_positions, units)
 
     def get_angles(self, positions: np.ndarray, indices: np.ndarray):
         """Calculate the angle rates for the positional encoding.
@@ -253,29 +253,34 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         pos_encoding = angle_rads[np.newaxis, ...]
         return tf.cast(pos_encoding, dtype=tf.float32)
 
-    def call(
-        self,
-        inputs: List[tf.Tensor],
-        training: bool = False,
-        masks: List[tf.Tensor] = None,
-    ):
+    def call(self, x: tf.Tensor):
         """Applies positional encoding to the input tensor.
 
         Applies positional encoding to the first tensor in the list. The encoding is scaled by the square root
         of the number of units and then added to the input tensor.
 
         Args:
-            inputs: A list of tensors, where the first tensor is the one to which positional encoding will be applied.
-            training: A boolean indicating whether the call is in training mode. Default is False.
-            masks: A list of mask tensors. Default is None.
+            x: A tensor to which positional encoding will be applied.
 
         Returns:
-            A list containing the input tensor with positional encoding applied.
+            A tensor with positional encoding applied.
         """
-        x = inputs[0]
         x *= tf.math.sqrt(self.units)
         x += self.pos_encoding[:, : tf.shape(x)[1], :]
-        return [x]
+        return x
+
+    def compute_output_shape(self, input_shape: tuple[int]):
+        """Computes the output shape of the layer.
+
+        Computes the output shape of the layer.
+
+        Args:
+            input_shape: A tuple of integers for input shape of the array.
+
+        Returns:
+            A tuple of integers for the output shape.
+        """
+        return input_shape
 
 
 class MultiHeadAttention(tf.keras.layers.Layer):
@@ -319,7 +324,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         return tf.transpose(x, perm=[0, 2, 1, 3])
 
     def scaled_dot_product_attention(
-        self, q: tf.Tensor, k: tf.Tensor, v: tf.Tensor, masks: List[tf.Tensor] = None
+        self, q: tf.Tensor, k: tf.Tensor, v: tf.Tensor, mask: tf.Tensor = None
     ):
         """Calculates the scaled dot-product attention.
 
@@ -342,20 +347,15 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         scaled_attention_logits = matmul_qk / tf.math.sqrt(dk)
 
         # Adds the mask to the scaled attention logits, if provided, to prevent attending to certain positions.
-        if masks is not None:
-            scaled_attention_logits += masks[0] * -1e9
+        if mask is not None:
+            scaled_attention_logits += mask[0] * -1e9
 
         # Apply the softmax function to get the attention weights & computes the output.
         attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1)
         output = tf.matmul(attention_weights, v)
         return output
 
-    def call(
-        self,
-        inputs: List[tf.Tensor],
-        training: bool = False,
-        masks: List[tf.Tensor] = None,
-    ):
+    def call(self, q: tf.Tensor, k: tf.Tensor, v: tf.Tensor, mask: tf.Tensor = None):
         """Applies the multi-head attention mechanism to the input.
 
         Applies the multi-head attention mechanism to the input.
@@ -369,9 +369,9 @@ class MultiHeadAttention(tf.keras.layers.Layer):
             tf.Tensor: Output tensor after applying the multi-head attention mechanism.
         """
         # Extracts Query, Key, and Value tensors from inputs.
-        q = self.w_q(inputs[0])
-        k = self.w_k(inputs[1])
-        v = self.w_v(inputs[2])
+        q = self.w_q(q)
+        k = self.w_k(k)
+        v = self.w_v(v)
 
         # Splits the Query, Key, and Value tensors into multiple heads.
         q = self.split_heads(q)
@@ -379,13 +379,58 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         v = self.split_heads(v)
 
         # Computes scaled attention for Query, Key & Value tensor using the masks.
-        scaled_attention = self.scaled_dot_product_attention(q, k, v, masks)
+        scaled_attention = self.scaled_dot_product_attention(q, k, v, mask)
         scaled_attention = tf.transpose(scaled_attention, perm=[0, 2, 1, 3])
-        concat_attention = tf.reshape(
-            scaled_attention, (inputs[0].shape[0], -1, self.units)
-        )
+        concat_attention = tf.reshape(scaled_attention, (q.shape[0], -1, self.units))
         output = self.dense_0(concat_attention)
         return output
+
+    def compute_output_shape(self, input_shape: tuple[int]):
+        """Computes the output shape of the layer.
+
+        Computes the output shape of the layer.
+
+        Args:
+            input_shape: A tuple of integers for input shape of the array.
+
+        Returns:
+            A tuple of integers for the output shape.
+        """
+        return input_shape
+
+
+class EncoderLayer(tf.keras.layers.Layer):
+
+    def __init__(
+        self,
+        units: int,
+        n_heads: int,
+        ff_units: int,
+        rate: float,
+        epsilon: float = 1e-6,
+    ) -> None:
+        """Initializes the EncoderLayer class.
+
+        Initializes the EncoderLayer class.
+
+        Args:
+            units: An integer for the no. of units in the model.
+            n_heads: An integer for the no. of attention heads in the multi-head attention mechanism.
+            ff_units: An integer for the number of units in the feed-forward network.
+            rate: A floating point value for the dropout rate.
+            epsilon: A floating point value to prevent division by zero in LayerNormalization.
+
+        Returns:
+            None.
+        """
+        super(EncoderLayer, self).__init__()
+
+        # Initializes the class variables.
+        self.mha = MultiHeadAttention(units, n_heads)
+        self.layer_norm_0 = tf.keras.layers.LayerNormalization(epsilon=epsilon)
+        self.layer_norm_1 = tf.keras.layers.LayerNormalization(epsilon=epsilon)
+        self.dropout_0 = tf.keras.layers.Dropout(rate)
+        self.dropout_1 = tf.keras.layers.Dropout(rate)
 
 
 class TransformerClassifier(tf.keras.Model):
@@ -416,13 +461,13 @@ class TransformerClassifier(tf.keras.Model):
         # Iterates across layers in the layers arrangement.
         self.model_layers = dict()
         for name in self.model_configuration["model"]["layers"]["arrangement"]:
-            config = self.model_configuration["model"]["layers"]["configuration"][name]
+            config = self.model_configuration["model"]["layers"]["configuration"]
 
             # If layer's name is like 'embedding_', an Embedding layer is initialized based on layer configuration.
             if name.split("_")[0] == "embedding":
                 self.model_layers[name] = tf.keras.layers.Embedding(
-                    input_dim=config["input_dim"],
-                    output_dim=config["output_dim"],
+                    input_dim=config["vocab_size"],
+                    output_dim=config["units"],
                     name=name,
                 )
 
@@ -461,3 +506,56 @@ class TransformerClassifier(tf.keras.Model):
                 self.model_layers[name] = tf.keras.layers.Dense(
                     units=config["units"], activation=config["activation"], name=name
                 )
+
+    def call(
+        self,
+        inputs: List[tf.Tensor],
+        training: bool = False,
+        masks: List[tf.Tensor] = None,
+    ):
+        """"""
+        # Extracts inputs from list of tensors.
+        x = inputs[0]
+        padding_mask = masks[0]
+
+        # Iterates across the layers arrangement, and predicts the output for each layer.
+        for name in self.model_configuration["model"]["layers"]["arrangement"]:
+            config = self.model_configuration["model"]["layers"]["configuration"]
+
+            # If layer's name is like 'dropout_', the following output is predicted.
+            if name.split("_")[0] == "dropout":
+                x = self.model_layers[name](x, training=training)
+
+            #
+            elif name.split("_")[0] == "mha":
+                attention_out = self.model_layers[name](x, x, x, padding_mask)
+                print(name, attention_out.shape)
+
+            else:
+                x = self.model_layers[name](x)
+            print(name, x.shape)
+        return x
+
+
+inp = tf.ones((64, 50))
+enc_padding_mask = tf.cast(tf.math.equal(inp, 0), tf.float32)
+enc_padding_mask = enc_padding_mask[:, tf.newaxis, tf.newaxis, :]
+
+model_config = {
+    "model": {
+        "layers": {
+            "arrangement": ["embedding_0", "posembedding_0", "dropout_0", "mha_0"],
+            "configuration": {
+                "vocab_size": 4096,
+                "units": 512,
+                "rate": 0.3,
+                "n_max_positions": 4096,
+                "n_heads": 8,
+            },
+        }
+    }
+}
+
+model = TransformerClassifier(model_config)
+_ = model([inp], training=True, masks=[enc_padding_mask])
+print(model.summary())
