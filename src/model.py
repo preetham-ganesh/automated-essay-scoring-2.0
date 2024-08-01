@@ -269,6 +269,19 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         x += self.pos_encoding[:, : tf.shape(x)[1], :]
         return x
 
+    def compute_output_shape(self, input_shape: tuple[int]):
+        """Computes the output shape of the layer.
+
+        Computes the output shape of the layer.
+
+        Args:
+            input_shape: A tuple of integers for input shape of the array.
+
+        Returns:
+            A tuple of integers for the output shape.
+        """
+        return input_shape
+
 
 class MultiHeadAttention(tf.keras.layers.Layer):
     """A tensorflow layer to compute multi-head attention."""
@@ -542,3 +555,39 @@ class TransformerClassifier(tf.keras.Model):
                     activation="softmax",
                     name=name,
                 )
+
+    def call(
+        self,
+        inputs: List[tf.Tensor],
+        training: bool = False,
+        masks: List[tf.Tensor] = None,
+    ):
+        """Input tensor is passed through the layers in the model.
+
+        Input tensor is passed through the layers in the model.
+
+        Args:
+            inputs: A list for the inputs from the input batch.
+            training: A boolean value for the flag of training/testing state.
+            masks: A tensor for the masks from the input batch.
+
+        Returns:
+            A tensor for the processed output from the components in the layer.
+        """
+        # Extracts inputs from list of tensors.
+        x = inputs[0]
+        padding_mask = masks[0]
+
+        # Iterates across the layers arrangement, and predicts the output for each layer.
+        for name in self.model_configuration["model"]["layers"]["arrangement"]:
+            # If layer's name is like 'dropout', the following output is predicted.
+            if name.startswith("dropout"):
+                x = self.model_layers[name](x, training=training)
+
+            # If layer's name is like 'encoder_layer', the following output is predicted.
+            elif name.startswith("encoder_layer"):
+                x = self.model_layers[name](x, training=training, mask=padding_mask)
+
+            else:
+                x = self.model_layers[name](x)
+        return [x]
