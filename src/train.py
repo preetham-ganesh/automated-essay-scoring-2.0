@@ -143,9 +143,21 @@ class Train(object):
 
         # Loads the optimizer.
         self.optimizer = tf.keras.optimizers.Adam(
-            learning_rate=self.model_configuration["model"]["optimizer"][
-                "learning_rate"
-            ]
+            learning_rate=CustomSchedule(
+                self.model_configuration["model"]["configuration"]["units"],
+                self.model_configuration["model"]["optimizer"]["learning_rate"][
+                    "warmup_steps"
+                ],
+            ),
+            beta_1=self.model_configuration["model"]["optimizer"]["learning_rate"][
+                "beta_1"
+            ],
+            beta_2=self.model_configuration["model"]["optimizer"]["learning_rate"][
+                "beta_2"
+            ],
+            epsilon=self.model_configuration["model"]["optimizer"]["learning_rate"][
+                "epsilon"
+            ],
         )
 
         # Creates checkpoint manager for the neural network model and loads the optimizer.
