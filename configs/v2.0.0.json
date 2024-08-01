@@ -28,6 +28,7 @@
         "encoder_layer_4",
         "encoder_layer_5",
         "global_average_pooling_1d",
+        "concat_0",
         "final"
       ],
       "configuration": {

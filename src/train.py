@@ -124,6 +124,7 @@ class Train(object):
             )
 
         print("Finished loading model for current configuration.")
+        print()
 
     def generate_model_summary_and_plot(self, plot: bool) -> None:
         """Generates summary & plot for loaded model.
@@ -184,6 +185,20 @@ class Train(object):
         self.validation_loss = tf.keras.metrics.Mean(name="validation_loss")
         self.train_accuracy = tf.keras.metrics.Mean(name="train_accuracy")
         self.validation_accuracy = tf.keras.metrics.Mean(name="validation_accuracy")
+
+    def create_padding_mask(self, sequences: tf.Tensor):
+        """Creates a padding mask for a given batch of sequences.
+
+        Generates a padding mask for the input sequences. Padding masks are used to mask out the padded values.
+
+        Args:
+            sequences: A tensor of shape (batch_size, seq_len) representing the input sequences.
+
+        Returns:
+            A tensor of shape (batch_size, 1, 1, seq_len) representing the padding mask.
+        """
+        sequences = tf.cast(tf.math.equal(sequences, 0), tf.float32)
+        return sequences[:, tf.newaxis, tf.newaxis, :]
 
     def compute_loss(
         self, target_batch: tf.Tensor, predicted_batch: tf.Tensor
@@ -248,6 +263,14 @@ class Train(object):
             for id_0 in range(
                 0, input_batch.shape[1], self.model_configuration["model"]["max_length"]
             ):
+                # Creates a padding mask for a given batch of sequences.
+                padding_mask = self.create_padding_mask(
+                    input_batch[
+                        :,
+                        id_0 : id_0 + self.model_configuration["model"]["max_length"],
+                    ]
+                )
+
                 # Predicts output for current subphrase & computes loss & accuracy.
                 probabilities = self.model(
                     [
@@ -259,7 +282,7 @@ class Train(object):
                         probabilities,
                     ],
                     training=True,
-                    masks=None,
+                    masks=[padding_mask],
                 )[0]
                 loss += self.compute_loss(target_batch, probabilities)
                 accuracy += self.compute_accuracy(target_batch, probabilities)
@@ -301,6 +324,14 @@ class Train(object):
         for id_0 in range(
             0, input_batch.shape[1], self.model_configuration["model"]["max_length"]
         ):
+            # Creates a padding mask for a given batch of sequences.
+            padding_mask = self.create_padding_mask(
+                input_batch[
+                    :,
+                    id_0 : id_0 + self.model_configuration["model"]["max_length"],
+                ]
+            )
+
             # Predicts output for current subphrase & computes loss & accuracy.
             probabilities = self.model(
                 [
@@ -309,7 +340,9 @@ class Train(object):
                         id_0 : id_0 + self.model_configuration["model"]["max_length"],
                     ],
                     probabilities,
-                ]
+                ],
+                training=False,
+                masks=[padding_mask],
             )[0]
             loss += self.compute_loss(target_batch, probabilities)
             accuracy += self.compute_accuracy(target_batch, probabilities)
