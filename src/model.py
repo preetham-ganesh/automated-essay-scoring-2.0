@@ -269,19 +269,6 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         x += self.pos_encoding[:, : tf.shape(x)[1], :]
         return x
 
-    def compute_output_shape(self, input_shape: tuple[int]):
-        """Computes the output shape of the layer.
-
-        Computes the output shape of the layer.
-
-        Args:
-            input_shape: A tuple of integers for input shape of the array.
-
-        Returns:
-            A tuple of integers for the output shape.
-        """
-        return input_shape
-
 
 class MultiHeadAttention(tf.keras.layers.Layer):
     """A tensorflow layer to compute multi-head attention."""
@@ -385,19 +372,6 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         output = self.dense_0(concat_attention)
         return output
 
-    def compute_output_shape(self, input_shape: tuple[int]):
-        """Computes the output shape of the layer.
-
-        Computes the output shape of the layer.
-
-        Args:
-            input_shape: A tuple of integers for input shape of the array.
-
-        Returns:
-            A tuple of integers for the output shape.
-        """
-        return input_shape
-
 
 class EncoderLayer(tf.keras.layers.Layer):
     """A tensorflow layer for encoder in transformer classifier."""
@@ -449,8 +423,8 @@ class EncoderLayer(tf.keras.layers.Layer):
         """
         return tf.keras.Sequential(
             [
-                tf.keras.layers.Dense(self.units, activation="relu"),
-                tf.keras.layers.Dense(self.ff_units),
+                tf.keras.layers.Dense(self.ff_units, activation="relu"),
+                tf.keras.layers.Dense(self.units),
             ]
         )
 
@@ -478,6 +452,19 @@ class EncoderLayer(tf.keras.layers.Layer):
         ffn_output = self.dropout_1(ffn_output, training=training)
         output_1 = self.layer_norm_1(output_0 + ffn_output)
         return output_1
+
+    def compute_output_shape(self, input_shape: tuple[int]):
+        """Computes the output shape of the layer.
+
+        Computes the output shape of the layer.
+
+        Args:
+            input_shape: A tuple of integers for input shape of the array.
+
+        Returns:
+            A tuple of integers for the output shape.
+        """
+        return input_shape
 
 
 class TransformerClassifier(tf.keras.Model):
@@ -511,7 +498,7 @@ class TransformerClassifier(tf.keras.Model):
             config = self.model_configuration["model"]["layers"]["configuration"]
 
             # If layer's name is like 'embedding_', an Embedding layer is initialized based on layer configuration.
-            if name.split("_")[0] == "embedding":
+            if name.startswith("embedding"):
                 self.model_layers[name] = tf.keras.layers.Embedding(
                     input_dim=config["vocab_size"],
                     output_dim=config["units"],
@@ -520,89 +507,38 @@ class TransformerClassifier(tf.keras.Model):
 
             # If layer's name is like 'posembedding_', an PositionalEmbedding layer is initialized based on layer
             # configuration.
-            elif name.split("_")[0] == "posembedding":
+            elif name.startswith("pos_embedding"):
                 self.model_layers[name] = PositionalEmbedding(
                     n_max_positions=config["n_max_positions"],
                     units=config["units"],
                 )
 
             # If layer's name is like 'dropout_', a Dropout layer is initialized based on layer configuration.
-            elif name.split("_")[0] == "dropout":
+            elif name.startswith("dropout"):
                 self.model_layers[name] = tf.keras.layers.Dropout(
                     rate=config["rate"], name=name
                 )
 
-            # If layer's name is like 'mha_', a Multi-head attention layer is initialized based on layer configuration.
-            elif name.split("_")[0] == "mha":
-                self.model_layers[name] = MultiHeadAttention(
-                    units=config["units"], n_heads=config["n_heads"]
+            # If layer's name is like 'encoder_layer', a Encoder attention layer is initialized based on layer configuration.
+            elif name.startswith("encoder_layer"):
+                self.model_layers[name] = EncoderLayer(
+                    units=config["units"],
+                    n_heads=config["n_heads"],
+                    ff_units=config["ff_units"],
+                    rate=config["rate"],
                 )
 
-            # If layer's name is like 'layernorm', a Normalization layer is initialized based on layer configuration.
-            elif name.split("_")[0] == "layernorm":
-                self.model_layers[name] = tf.keras.layers.LayerNormalization(
-                    epsilon=config["epsilon"], name=name
+            # If layer's name is like 'global_average_pooling_1d', a Global Average Pooling 1D layer is initialized
+            # based on layer configuration.
+            elif name.startswith("global_average_pooling_1d"):
+                self.model_layers[name] = tf.keras.layers.GlobalAveragePooling1D(
+                    data_format="channels_last"
                 )
 
-            # If layer's name is like 'add', an Add layer is initialized based on layer configuration.
-            elif name.split("_")[0] == "add":
-                self.model_layers[name] = tf.keras.layers.Add()
-
-            # If layer's name is like 'dense_', a Dense layer is initialized based on layer configuration.
-            elif name.split("_")[0] == "dense":
+            # If layer's name is like 'fina', a Dense layer is initialized based on layer configuration.
+            elif name.startswith("final"):
                 self.model_layers[name] = tf.keras.layers.Dense(
-                    units=config["units"], activation=config["activation"], name=name
+                    units=self.model_configuration["model"]["n_classes"],
+                    activation="softmax",
+                    name=name,
                 )
-
-    def call(
-        self,
-        inputs: List[tf.Tensor],
-        training: bool = False,
-        masks: List[tf.Tensor] = None,
-    ):
-        """"""
-        # Extracts inputs from list of tensors.
-        x = inputs[0]
-        padding_mask = masks[0]
-
-        # Iterates across the layers arrangement, and predicts the output for each layer.
-        for name in self.model_configuration["model"]["layers"]["arrangement"]:
-            config = self.model_configuration["model"]["layers"]["configuration"]
-
-            # If layer's name is like 'dropout_', the following output is predicted.
-            if name.split("_")[0] == "dropout":
-                x = self.model_layers[name](x, training=training)
-
-            #
-            elif name.split("_")[0] == "mha":
-                attention_out = self.model_layers[name](x, x, x, padding_mask)
-                print(name, attention_out.shape)
-
-            else:
-                x = self.model_layers[name](x)
-            print(name, x.shape)
-        return x
-
-
-inp = tf.ones((64, 50))
-enc_padding_mask = tf.cast(tf.math.equal(inp, 0), tf.float32)
-enc_padding_mask = enc_padding_mask[:, tf.newaxis, tf.newaxis, :]
-
-model_config = {
-    "model": {
-        "layers": {
-            "arrangement": ["embedding_0", "posembedding_0", "dropout_0", "mha_0"],
-            "configuration": {
-                "vocab_size": 4096,
-                "units": 512,
-                "rate": 0.3,
-                "n_max_positions": 4096,
-                "n_heads": 8,
-            },
-        }
-    }
-}
-
-model = TransformerClassifier(model_config)
-_ = model([inp], training=True, masks=[enc_padding_mask])
-print(model.summary())
