@@ -628,19 +628,8 @@ class Train(object):
         """
         # Defines input shapes for exported model's input signature.
         input_0_shape = [None, self.model_configuration["model"]["max_length"]]
-        input_1_shape = [
-            None,
-            self.model_configuration["model"]["layers"]["configuration"]["lstm_0"][
-                "units"
-            ],
-        ]
-        input_2_shape = [
-            None,
-            self.model_configuration["model"]["layers"]["configuration"]["lstm_0"][
-                "units"
-            ],
-        ]
-        input_3_shape = [None, self.model_configuration["model"]["n_classes"]]
+        input_1_shape = [None, self.model_configuration["model"]["n_classes"]]
+        input_2_shape = [None, 1, 1, self.model_configuration["model"]["max_length"]]
 
         class ExportModel(tf.Module):
             """Exports trained tensorflow model as tensorflow module for serving."""
@@ -664,15 +653,10 @@ class Train(object):
                     tf.TensorSpec(shape=input_0_shape, dtype=tf.int32),
                     tf.TensorSpec(shape=input_1_shape, dtype=tf.float32),
                     tf.TensorSpec(shape=input_2_shape, dtype=tf.float32),
-                    tf.TensorSpec(shape=input_3_shape, dtype=tf.float32),
                 ]
             )
             def predict(
-                self,
-                x: tf.Tensor,
-                hidden_state_m: tf.Tensor,
-                hidden_state_c: tf.Tensor,
-                probabilities: tf.Tensor,
+                self, x: tf.Tensor, probabilities: tf.Tensor, padding_mask: tf.Tensor
             ):
                 """Inputs are passed through the model for prediction.
 
@@ -680,15 +664,14 @@ class Train(object):
 
                 Args:
                     x: A tensor for the input at the current timestep.
-                    hidden_state_m: A tensor for the hidden state m passed through RNN layers in the model.
-                    hidden_state_c: A tensor for the hidden state c passed through RNN layers in the model.
                     probabilities: A tensor for the output from the previous input batch.
+                    padding_mask: A tensor representing the padding mask.
 
                 Return:
                     A tensor for the output predicted by the encoder for the current image.
                 """
                 prediction = self.model(
-                    [x, hidden_state_m, hidden_state_c, probabilities]
+                    [x, probabilities], training=False, masks=[padding_mask]
                 )
                 return prediction
 
