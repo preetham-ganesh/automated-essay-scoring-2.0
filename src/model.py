@@ -591,3 +591,32 @@ class TransformerClassifier(tf.keras.Model):
             else:
                 x = self.model_layers[name](x)
         return [x]
+
+    def build_graph(self) -> tf.keras.Model:
+        """Builds plottable graph for the model.
+
+        Builds plottable graph for the model.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        # Creates the input layer using the model configuration.
+        input_0 = tf.keras.layers.Input(
+            shape=(self.model_configuration["model"]["max_length"],)
+        )
+        mask_0 = tf.keras.layers.Input(
+            shape=(
+                1,
+                1,
+                self.model_configuration["model"]["max_length"],
+            )
+        )
+
+        # Creates an object for the tensorflow model and returns it.
+        return tf.keras.Model(
+            inputs=[input_0, mask_0],
+            outputs=self.call([input_0], training=bool, masks=[mask_0]),
+        )
