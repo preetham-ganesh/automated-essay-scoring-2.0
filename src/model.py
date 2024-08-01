@@ -460,5 +460,5 @@ class TransformerClassifier(tf.keras.Model):
         # Creates an object for the tensorflow model and returns it.
         return tf.keras.Model(
             inputs=[input_0, input_1, mask_0],
-            outputs=self.call([input_0], training=bool, masks=[mask_0]),
+            outputs=self.call([input_0, input_1], training=bool, masks=[mask_0]),
         )
