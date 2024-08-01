@@ -80,7 +80,7 @@ class Dataset(object):
         n_unwanted_characters = len(unwanted_characters)
         for index in range(n_unwanted_characters):
             text = text.replace(unwanted_characters[index], "")
-        text = re.sub(r"[^!@$&()[]{}:;,./?\|'a-zA-Z0-9]+", "", text)
+        text = re.sub(r"[^a-zA-Z0-9]+", "", text)
 
         # Removes beginning, trailing and unwanted spaces found in text.
         text = text.strip()
