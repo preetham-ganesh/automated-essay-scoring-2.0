@@ -59,6 +59,9 @@ def main():
         mlflow.create_experiment(args.experiment_name, artifact_location="")
     mlflow.set_experiment(args.experiment_name)
 
+    # Sets tag for model version.
+    mlflow.set_tag("model_version", "v{}".format(args.model_version))
+
     # Creates an object for the Train class.
     trainer = Train(args.model_version)
 
